@@ -1,0 +1,14 @@
+beautifulsoup4
+urllib3
+prettytable
+gitpython
+requests
+dnspython
+simplejson
+ip2geotools
+ipwhois
+wafw00f
+graphviz
+flask
+flask-limiter
+waitress
