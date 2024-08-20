@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enumeration Results for {{ domain }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.min.css">
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
+    <script src="{{ url_for('static', filename='enumerate.js') }}"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="{{ url_for('index') }}" class="back-button">← Back to Main Page</a>
+            <h1>Enumeration Results for {{ domain }}</h1>
+        </div>
+
+        <div id="status-message"></div>
+
+        <div id="loading">
+            <p>Enumeration in progress... Please wait.</p>
+            <div class="spinner"></div>
+        </div>
+
+        <div id="results" style="display: none;">
+            <div class="tabs">
+                <button class="tab-button active" onclick="openTab(event, 'passiveScan')">Passive Scan</button>
+                <button class="tab-button" onclick="openTab(event, 'activeScan')">Active Scan</button>
+                <button class="tab-button" onclick="openTab(event, 'osint')">OSINT</button>
+                <button class="tab-button" onclick="openTab(event, 'cloudEnum')">Cloud Enumeration</button>
+            </div>
+
+            <div id="passiveScan" class="tab-content" style="display: block;">
+                <div class="subtabs">
+                    <button class="subtab-button active" onclick="openSubTab(event, 'subdomains')">Subdomains</button>
+                    <button class="subtab-button" onclick="openSubTab(event, 'virustotal')">VirusTotal</button>
+                    <button class="subtab-button" onclick="openSubTab(event, 'dnsdumpster')">DNSDumpster</button>
+                </div>
+
+                <div id="subdomains" class="subtab-content" style="display: block;">
+                    <h3>Subdomains</h3>
+                    <table id="subdomains-table" class="display">
+                        <thead>
+                            <tr>
+                                <th>Subdomain</th>
+                                <th>IP Address</th>
+                                <th>HTTP Status</th>
+                                <th>Source</th>
+                            </tr>
+                        </thead>
+                        <tbody id="subdomains-body"></tbody>
+                    </table>
+                </div>
+
+                <div id="virustotal" class="subtab-content" style="display: none;">
+                    <h3>VirusTotal Results</h3>
+                    <table id="virustotal-table" class="display">
+                        <thead>
+                            <tr>
+                                <th>Subdomain</th>
+                                <th>IP Addresses</th>
+                            </tr>
+                        </thead>
+                        <tbody id="virustotal-body"></tbody>
+                    </table>
+                </div>
+
+                <div id="dnsdumpster" class="subtab-content" style="display: none;">
+                    <h3>DNSDumpster Results</h3>
+                    <div id="dnsdumpster-content"></div>
+                </div>
+            </div>
+
+            <div id="activeScan" class="tab-content" style="display: none;">
+                <h3>Active Scan</h3>
+                <p>Active scan results will be displayed here.</p>
+            </div>
+
+            <div id="osint" class="tab-content" style="display: none;">
+                <h3>OSINT</h3>
+                <p>OSINT results will be displayed here.</p>
+            </div>
+
+            <div id="cloudEnum" class="tab-content" style="display: none;">
+                <h3>Cloud Enumeration</h3>
+                <p>Cloud enumeration results will be displayed here.</p>
+            </div>
+        </div>
+
+        <button onclick="exportResults()" class="mt-20">Export Results</button>
+    </div>
+
+    <script src="/static/enumerate.js"></script>
+</body>
+</html>

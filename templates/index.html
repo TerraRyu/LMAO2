@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>LMAO - Large-scale Mapping & Attacks Operations</title>
+        <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+        <link rel="stylesheet" href="{{ url_for('static', filename='network-animation.css') }}">
+        <link rel="stylesheet" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.min.css">
+        <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+        <script src="https://cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+        <script src="{{ url_for('static', filename='index.js') }}"></script>
+        <script src="{{ url_for('static', filename='enumerate.js') }}"></script>
+    </head>
+<body>
+    <div class="network-background"></div>
+    <div class="ascii-art">
+        <pre>
+  _       __  __               ____
+  | |     |  \/  |     /\      / __ \
+   | |     | \  / |    /  \    | |  | |
+   | |     | |\/| |   / /\ \   | |  | |
+   | |____ | |  | |  / ____ \  | |__| |
+  |______||_|  |_| /_/    \_\  \____/
+
+        </pre>
+    </div>
+    <div class="container">
+        <h1>LMAO (Large-scale Mapping & Attacks Operations)</h1>
+
+        <div class="button-group">
+            <button id="searchModeBtn" class="mode-btn active">Search</button>
+            <button id="urlModeBtn" class="mode-btn">URL</button>
+        </div>
+
+        <div class="input-group">
+            <input type="text" id="queryInput" placeholder="Enter search or URL">
+        </div>
+
+        <div class="button-group mt-20">
+            <p>Enumeration type:</p>
+            <button id="passiveScanBtn" class="scan-btn" data-scan-type="passive">Passive Scan</button>
+            <button id="activeScanBtn" class="scan-btn" data-scan-type="active">Active Scan</button>
+            <button id="osintBtn" class="scan-btn" data-scan-type="osint">OSINT</button>
+            <button id="cloudEnumBtn" class="scan-btn" data-scan-type="cloud">Cloud Enum</button>
+        </div>
+
+        <div id="numResultsGroup" class="input-group">
+            <p>Enter number of search Results (Max 50):</p>
+            <input type="number" id="numResults" placeholder="Enter number of search Results (Max 50)" min="1" max="50">
+        </div>
+
+        <button id="submitBtn">Enter</button>
+
+        <div id="resultsBox" class="results-box">
+            <div id="messageArea"></div>
+            <table id="resultsTable" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>Website Name</th>
+                        <th>Search Engine</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="resultsBody"></tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>
