@@ -506,3 +506,57 @@ tr:hover {
 .scan-btn:hover {
     opacity: 0.8;  /* Add this line to increase opacity on hover */
 }
+
+/* Tab Styles */
+.tabs, .subtabs {
+    overflow: hidden;
+    border: 1px solid #ccc;
+    background-color: #f1f1f1;
+    margin-bottom: 20px;
+}
+
+.tab-button, .subtab-button {
+    background-color: inherit;
+    float: left;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    padding: 14px 16px;
+    transition: 0.3s;
+    font-size: 17px;
+}
+
+.tab-button:hover, .subtab-button:hover {
+    background-color: #ddd;
+}
+
+.tab-button.active, .subtab-button.active {
+    background-color: #ccc;
+}
+
+.tab-content, .subtab-content {
+    display: none;
+    padding: 6px 12px;
+    border: 1px solid #ccc;
+    border-top: none;
+}
+
+/* Table Styles */
+table.dataTable {
+    width: 100% !important;
+    margin-bottom: 20px !important;
+}
+
+.dataTables_wrapper .dataTables_filter {
+    margin-bottom: 10px;
+}
+
+/* Responsive Design */
+@media screen and (max-width: 600px) {
+    .tab-button, .subtab-button {
+        float: none;
+        display: block;
+        text-align: left;
+        width: 100%;
+    }
+}

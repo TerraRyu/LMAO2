@@ -77,7 +77,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 showMessage('Please select at least one scan type.', 'error');
                 return;
             }
-            performEnumeration(validUrl, selectedScanType);
+            performEnumeration(validUrl, selectedScanTypes);
         }
     });
 
@@ -119,22 +119,17 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    function performEnumeration(url, scanTypes) {
-        // Ensure the URL has a protocol
-        if (!url.startsWith('http://') && !url.startsWith('https://')) {
-            url = 'https://' + url;
-        }
-
+    function performEnumeration(url) {
         resultsTable.style.display = 'none';
-        resultsBox.innerHTML = `<p>Enumerating '${url}' using ${scanTypes.join(', ')} scan...</p>`;
+        resultsBox.innerHTML = `<p>Enumerating '${url}'...</p>`;
         
         const params = new URLSearchParams();
         params.append('domain', url);
-        scanTypes.forEach(type => params.append('scan_types', type));
+        selectedScanTypes.forEach(type => params.append('scan_types', type));
         
         window.location.href = `/enumerate?${params.toString()}`;
     }
-
+    
     function displayResults(results) {
         resultsBody.innerHTML = '';
         results.forEach(result => {

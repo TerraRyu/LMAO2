@@ -1,13 +1,14 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Enumeration Results for {{ domain }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.min.css">
-    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.24/js/jquery.dataTables.js"></script>
     <script src="{{ url_for('static', filename='enumerate.js') }}"></script>
 </head>
 <body>
@@ -91,7 +92,136 @@
 
         <button onclick="exportResults()" class="mt-20">Export Results</button>
     </div>
+    
+    <script>
+         const domain = "{{ domain | safe }}";
 
-    <script src="/static/enumerate.js"></script>
+        function checkEnumerationStatus() {
+            console.log('Checking enumeration status for domain:', domain);
+            fetch(`/enumeration_status/${encodeURIComponent(domain)}`)
+                .then(response => {
+                    console.log('Response status:', response.status);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Received data:', data);
+                    if (data.status === 'complete') {
+                        document.getElementById('loading').style.display = 'none';
+                        document.getElementById('results').style.display = 'block';
+                        displayResults(data.results);
+                    } else if (data.status === 'error') {
+                        showError(`An error occurred: ${data.message}`);
+                    } else {
+                        setTimeout(checkEnumerationStatus, 5000); // Check again in 5 seconds
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showError(`An error occurred while checking enumeration status: ${error.message}`);
+                });
+        }
+
+        function displayResults(results) {
+            const resultsDiv = document.getElementById('results');
+            let html = '<h2>Enumeration Results</h2>';
+            
+            if (results.subdomains && Object.keys(results.subdomains).length > 0) {
+                html += '<h3>Subdomains</h3><ul>';
+                for (const [subdomain, info] of Object.entries(results.subdomains)) {
+                    html += `<li>${subdomain} (IP: ${info.ip}, Sources: ${info.sources.join(', ')})</li>`;
+                }
+                html += '</ul>';
+            }
+            
+            if (results.virustotal && Object.keys(results.virustotal).length > 0) {
+                html += '<h3>VirusTotal Results</h3><ul>';
+                for (const [subdomain, ips] of Object.entries(results.virustotal)) {
+                    html += `<li>${subdomain}: ${ips.join(', ')}</li>`;
+                }
+                html += '</ul>';
+            }
+            
+            if (results.dnsdumpster && Object.keys(results.dnsdumpster).length > 0) {
+                html += '<h3>DNSDumpster Results</h3>';
+                for (const [recordType, records] of Object.entries(results.dnsdumpster)) {
+                    html += `<h4>${recordType}</h4><ul>`;
+                    for (const record of records) {
+                        html += `<li>${JSON.stringify(record)}</li>`;
+                    }
+                    html += '</ul>';
+                }
+            }
+            
+            resultsDiv.innerHTML = html;
+        }
+
+        function showError(message) {
+            console.error('Error:', message);
+            const statusMessage = document.getElementById('status-message');
+            if (statusMessage) {
+                statusMessage.innerHTML = `<div class="alert alert-error">${message}</div>`;
+            } else {
+                console.error('Status message div not found');
+            }
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        // Start checking status when the page loads
+        window.onload = function() {
+            console.log('Page loaded, starting enumeration status check');
+            checkEnumerationStatus();
+        };
+    </script>
+    <div class="container">
+        <h1>Enumeration Results for {{ domain }}</h1>
+        <div id="status-message"></div>
+        <div id="loading">
+            <p>Enumeration in progress... Please wait.</p>
+            <div class="spinner"></div>
+        </div>
+        <div id="results" style="display: none;"></div>
+    </div>
+
+    <script>
+        const domain = "{{ domain }}";
+        const scanTypes = {{ scan_types|tojson }};
+    </script>
+</body>
+</html>
+
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enumeration Results</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.css">
+    <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.24/js/jquery.dataTables.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="{{ url_for('index') }}" class="back-button">← Back to Main</a>
+            <h1>Enumeration Results for <a href="{{ domain }}">{{ domain }}</a></h1>
+        </div>
+        <div id="status-message"></div>
+        <div id="loading">
+            <p>Enumeration in progress... Please wait.</p>
+            <div class="spinner"></div>
+        </div>
+        <div id="results" style="display: none;"></div>
+    </div>
+
+    
+    <script src="{{ url_for('static', filename='enumerate.js') }}"></script>
+    <script src="{{ url_for('static', filename='particles.js') }}"></script>
 </body>
 </html>

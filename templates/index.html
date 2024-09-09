@@ -12,9 +12,12 @@
         <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
         <script src="{{ url_for('static', filename='index.js') }}"></script>
         <script src="{{ url_for('static', filename='enumerate.js') }}"></script>
+        <script src="{{ url_for('static', filename='particles.js') }}"></script>
+        <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
     </head>
 <body>
     <div class="network-background"></div>
+    <div id="particles-js"></div>
     <div class="ascii-art">
         <pre>
   _       __  __               ____
@@ -34,12 +37,13 @@
             <button id="urlModeBtn" class="mode-btn">URL</button>
         </div>
 
+        <h3>Search Input:</h3>
         <div class="input-group">
             <input type="text" id="queryInput" placeholder="Enter search or URL">
         </div>
-
+        
+        <h3>Enumeration Type:</h3>
         <div class="button-group mt-20">
-            <p>Enumeration type:</p>
             <button id="passiveScanBtn" class="scan-btn" data-scan-type="passive">Passive Scan</button>
             <button id="activeScanBtn" class="scan-btn" data-scan-type="active">Active Scan</button>
             <button id="osintBtn" class="scan-btn" data-scan-type="osint">OSINT</button>
@@ -47,7 +51,7 @@
         </div>
 
         <div id="numResultsGroup" class="input-group">
-            <p>Enter number of search Results (Max 50):</p>
+            <h3>Enter number of search Results (Max 50):</h3>
             <input type="number" id="numResults" placeholder="Enter number of search Results (Max 50)" min="1" max="50">
         </div>
 
