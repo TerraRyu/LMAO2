@@ -164,6 +164,9 @@ from functions.VTEnum import virustotal_enum
 from functions.DNSDumpEnum import dnsdumpster_enum
 from activescans.dnsrecon import dnsrecon_enum
 from activescans.dig_enum import dig_enum 
+from functions.nucleirecon import nuclei_enum
+from activescans.subzy_enum import subzy_enum
+from SearchFunctionality import is_valid_domain, extract_domain
 # Import other enumeration functions as needed
 
 logging.basicConfig(level=logging.INFO)
@@ -172,8 +175,9 @@ logger = logging.getLogger(__name__)
 def extract_base_domain(url: str) -> str:
     parsed_url = urlparse(url)
     domain = parsed_url.netloc if parsed_url.netloc else parsed_url.path
-    domain_parts = domain.split('.')
-    return '.'.join(domain_parts[-2:]) if len(domain_parts) > 2 else domain
+    # domain_parts = domain.split('.')
+    # return '.'.join(domain_parts[-2:]) if len(domain_parts) > 2 else domain
+    return domain
 
 def check_subdomain_status(subdomain: str) -> Tuple[str, str]:
     for protocol in ['http', 'https']:
@@ -186,13 +190,19 @@ def check_subdomain_status(subdomain: str) -> Tuple[str, str]:
 
 def enumerate_subdomains(domain: str, scan_types: List[str], progress_callback=None) -> Tuple[Set[str], Dict[str, Any]]:
     clean_domain = extract_base_domain(domain)
+
+    if not is_valid_domain(clean_domain):
+        logger.error(f"Invalid domain: {clean_domain}")
+        return set(), {"error": "Invalid domain"}
     
     all_subdomains: Set[str] = set()
     results = {
         'subdomains': {},
         'virustotal': {},
         'dnsdumpster': {},
-        'dnsrecon': {}
+        'dnsrecon': {},
+        'nuclei': {},
+        'subzy': {}
         # Add other result categories as needed
     }
     
@@ -234,31 +244,46 @@ def enumerate_subdomains(domain: str, scan_types: List[str], progress_callback=N
 
 def process_passive_scan(domain: str, all_subdomains: Set[str], results: Dict[str, Any], lock: threading.Lock, progress_callback=None):
     if progress_callback:
-        progress_callback('passive', 10)
+        progress_callback('passive', 0)
+    
     vt_results = virustotal_enum(domain)
     if progress_callback:
-        progress_callback('passive', 50)
+        progress_callback('passive', 33)
+    
     dns_results = dnsdumpster_enum(domain)
+    if progress_callback:
+        progress_callback('passive', 66)
+    
+    nuclei_results = nuclei_enum(domain)  # Add Nuclei scan
     
     with lock:
         process_virustotal_results(vt_results, all_subdomains, results)
         process_dnsdumpster_results(dns_results, all_subdomains, results)
+        process_nuclei_results(nuclei_results, results)  # Add this line
     
     if progress_callback:
         progress_callback('passive', 100)
 
 def process_active_scan(domain: str, all_subdomains: Set[str], results: Dict[str, Any], lock: threading.Lock, progress_callback=None):
     if progress_callback:
-        progress_callback('active', 25)
-    dnsrecon_results = dnsrecon_enum(domain)
+        progress_callback('active', 0)
     
+    dnsrecon_results = dnsrecon_enum(domain)
+    if progress_callback:
+        progress_callback('active', 25)
+    
+    dig_results = dig_enum(domain)
     if progress_callback:
         progress_callback('active', 50)
-    dig_results = dig_enum(domain)
+    
+    subzy_results = subzy_enum(domain)  # Add this line
+    if progress_callback:
+        progress_callback('active', 75)
     
     with lock:
         process_dnsrecon_results(dnsrecon_results, all_subdomains, results)
         process_dig_results(dig_results, all_subdomains, results)
+        process_subzy_results(subzy_results, results)  # Add this line
     
     if progress_callback:
         progress_callback('active', 100)
@@ -293,6 +318,38 @@ def process_dnsdumpster_results(result: Dict[str, Any], all_subdomains: Set[str]
                     results['subdomains'][domain]['ip'] = subdomain.get('ip', 'N/A')
                 if 'DNSDumpster' not in results['subdomains'][domain]['sources']:
                     results['subdomains'][domain]['sources'].append('DNSDumpster')
+
+def process_subzy_results(subzy_results: Dict[str, Any], results: Dict[str, Any]) -> None:
+    if "error" in subzy_results:
+        results['subzy'] = {"error": subzy_results["error"]}
+        logger.error(f"Subzy scan error: {subzy_results['error']}")
+    elif "raw_output" in subzy_results:
+        results['subzy'] = {"raw_output": subzy_results["raw_output"]}
+        logger.warning("Subzy returned non-JSON output")
+        # Try to extract subdomains from raw output
+        subdomains = extract_subdomains_from_raw(subzy_results["raw_output"])
+        if subdomains:
+            for subdomain in subdomains:
+                if subdomain not in results['subdomains']:
+                    results['subdomains'][subdomain] = {'ip': 'N/A', 'sources': ['Subzy']}
+                elif 'Subzy' not in results['subdomains'][subdomain]['sources']:
+                    results['subdomains'][subdomain]['sources'].append('Subzy')
+    else:
+        results['subzy'] = subzy_results
+        logger.info(f"Subzy found {len(subzy_results.get('vulnerable', []))} vulnerable subdomains")
+
+def extract_subdomains_from_raw(raw_output: str) -> List[str]:
+    # This is a basic extraction. Adjust the regex pattern if needed based on Subzy's actual output format
+    subdomain_pattern = r'\b(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}\b'
+    return list(set(re.findall(subdomain_pattern, raw_output)))
+
+
+def process_nuclei_results(nuclei_results: Dict[str, Any], results: Dict[str, Any]) -> None:
+    if "error" in nuclei_results:
+        results['nuclei'] = {"error": nuclei_results["error"]}
+    else:
+        results['nuclei'] = nuclei_results
+        logger.info(f"Nuclei found {len(nuclei_results.get('vulnerabilities', []))} vulnerabilities and {len(nuclei_results.get('information', []))} informational items.")
 
 # def process_dnsrecon_results(result: Dict[str, Any], all_subdomains: Set[str], results: Dict[str, Any]) -> None:
 #     results['dnsrecon'] = result
@@ -430,6 +487,14 @@ if __name__ == "__main__":
             print(f"\n{record_type.upper()}:")
             for record in records:
                 print(record)
+
+        print("\nNuclei Results:")
+        print("Vulnerabilities:")
+        for vuln in results['nuclei']['vulnerabilities']:
+            print(f"  - {vuln['name']} ({vuln['severity']}): {vuln['description']}")
+        print("\nInformation:")
+        for info in results['nuclei']['information']:
+            print(f"  - {info['name']}: {info['description']}")
     
     if 'active' in scan_types:
         print("\nDNSRecon Results:")

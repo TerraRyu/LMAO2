@@ -224,6 +224,7 @@ import io
 import threading
 import time
 from functools import wraps
+import subprocess
 
 app = Flask(__name__, static_folder='static')
 
@@ -391,7 +392,7 @@ def export():
         return jsonify({"error": "An internal server error occurred. Please try again later."}), 500
 
 def normalize_url(url):
-    url = url.strip().lower()
+    #url = url.strip().lower()
     if not url.startswith(('http://', 'https://')):
         url = 'https://' + url
     return url

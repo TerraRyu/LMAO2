@@ -368,9 +368,11 @@ document.addEventListener('DOMContentLoaded', function() {
             if (scanType === 'passive') {
                 html += `<button class="subtab-button" onclick="openSubTab(event, '${scanType}VirusTotal')">VirusTotal</button>`;
                 html += `<button class="subtab-button" onclick="openSubTab(event, '${scanType}DNSDumpster')">DNSDumpster</button>`;
+                html += `<button class="subtab-button" onclick="openSubTab(event, '${scanType}Nuclei')">Nuclei</button>`;
             } else if (scanType === 'active') {
                 html += `<button class="subtab-button" onclick="openSubTab(event, '${scanType}DNSRecon')">DNS Recon</button>`;
                 html += `<button class="subtab-button" onclick="openSubTab(event, '${scanType}Dig')">Dig</button>`;
+                html += `<button class="subtab-button" onclick="openSubTab(event, '${scanType}Subzy')">Subzy</button>`;
             }
             html += '</div>';
     
@@ -387,6 +389,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 html += `<div id="${scanType}DNSDumpster" class="subtab-content" style="display: none">`;
                 html += createDNSDumpsterContent(results.dnsdumpster);
                 html += '</div>';
+    
+                html += `<div id="${scanType}Nuclei" class="subtab-content" style="display: none">`;
+                html += createNucleiContent(results.nuclei);
+                html += '</div>';
             } else if (scanType === 'active') {
                 html += `<div id="${scanType}DNSRecon" class="subtab-content" style="display: none">`;
                 html += createDNSReconContent(results.dnsrecon);
@@ -394,6 +400,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
                 html += `<div id="${scanType}Dig" class="subtab-content" style="display: none">`;
                 html += createDigContent(results.dig);
+                html += '</div>';
+    
+                html += `<div id="${scanType}Subzy" class="subtab-content" style="display: none">`;
+                html += createSubzyContent(results.subzy);
                 html += '</div>';
             }
     
@@ -516,6 +526,95 @@ document.addEventListener('DOMContentLoaded', function() {
             html = '<p>No DNSRecon results available or unexpected format.</p>';
         }
     
+        return html;
+    }
+
+    function createNucleiContent(nucleiResults) {
+        let html = '<h3>Nuclei Results</h3>';
+        
+        if (nucleiResults.error) {
+            html += `<p class="error">Error: ${nucleiResults.error}</p>`;
+        } else {
+            html += '<h4>Vulnerabilities</h4>';
+            html += createNucleiTable(nucleiResults.vulnerabilities);
+            
+            html += '<h4>Information</h4>';
+            html += createNucleiTable(nucleiResults.information);
+        }
+        
+        return html;
+    }
+    
+    function createNucleiTable(items) {
+        if (items.length === 0) {
+            return '<p>No results found.</p>';
+        }
+    
+        let html = '<table class="display"><thead><tr><th>Name</th><th>Severity</th><th>Description</th><th>Matched At</th></tr></thead><tbody>';
+        for (const item of items) {
+            if (item.raw_output) {
+                html += `<tr><td colspan="4">${item.raw_output}</td></tr>`;
+            } else {
+                html += `<tr><td>${item.name || 'N/A'}</td><td>${item.severity || 'N/A'}</td><td>${item.description || 'N/A'}</td><td>${item.matched_at || 'N/A'}</td></tr>`;
+            }
+        }
+        html += '</tbody></table>';
+        return html;
+    }
+
+    function createSubzyContent(subzyResults) {
+        let html = '<h3>Subzy Results</h3>';
+        
+        if (subzyResults.error) {
+            html += `<p class="error">Error: ${subzyResults.error}</p>`;
+        } else if (subzyResults.raw_output) {
+            html += '<h4>Raw Subzy Output</h4>';
+            html += `<pre>${subzyResults.raw_output}</pre>`;
+            
+            // Attempt to extract and display subdomains from raw output
+            const subdomains = extractSubdomainsFromRaw(subzyResults.raw_output);
+            if (subdomains.length > 0) {
+                html += '<h4>Extracted Subdomains</h4>';
+                html += '<ul>';
+                subdomains.forEach(subdomain => {
+                    html += `<li>${subdomain}</li>`;
+                });
+                html += '</ul>';
+            }
+        } else {
+            html += '<h4>Vulnerable Subdomains</h4>';
+            html += createSubzyTable(subzyResults.vulnerable);
+            
+            html += '<h4>Not Vulnerable Subdomains</h4>';
+            html += createSubzyTable(subzyResults.not_vulnerable);
+            
+            html += '<h4>Errors</h4>';
+            html += createSubzyTable(subzyResults.errors);
+        }
+        
+        return html;
+    }
+    
+    function extractSubdomainsFromRaw(rawOutput) {
+        const subdomainPattern = /\b(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}\b/g;
+        return [...new Set(rawOutput.match(subdomainPattern) || [])];
+    }
+    
+    function createSubzyTable(items) {
+        if (!items || items.length === 0) {
+            return '<p>No results found.</p>';
+        }
+    
+        let html = '<table class="display"><thead><tr><th>Subdomain</th><th>Service</th><th>Status</th><th>Fingerprint</th></tr></thead><tbody>';
+        for (const item of items) {
+            html += `<tr>
+                <td>${item.url || 'N/A'}</td>
+                <td>${item.service || 'N/A'}</td>
+                <td>${item.status || 'N/A'}</td>
+                <td>${item.fingerprint || 'N/A'}</td>
+            </tr>`;
+        }
+        html += '</tbody></table>';
         return html;
     }
 

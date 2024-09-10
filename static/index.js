@@ -83,13 +83,32 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function isValidUrl(input) {
         console.log("Validating URL:", input);
-        let domain = input.replace(/^(https?:\/\/)?(www\.)?/, '');
-        const domainRegex = /^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}$/;
+        
+        // Use URL constructor to parse the input
+        let url;
+        try {
+            url = new URL(input);
+        } catch (_) {
+            // If URL constructor fails, try adding https:// and parse again
+            try {
+                url = new URL('https://' + input);
+            } catch (_) {
+                console.log("Invalid URL");
+                return null;
+            }
+        }
+    
+        // Extract the hostname (domain) from the URL
+        let domain = url.hostname;
+        
+        // Regular expression to validate domain (including subdomains)
+        const domainRegex = /^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9]$/;
         
         if (domainRegex.test(domain)) {
-            console.log("Valid domain, returning:", 'https://' + domain);
-            return 'https://' + domain;
+            console.log("Valid domain:", domain);
+            return url.protocol + '//' + domain;
         }
+        
         console.log("Invalid domain");
         return null;
     }
@@ -120,11 +139,27 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function performEnumeration(url) {
+        if (!url) {
+            showMessage('Please enter a valid URL.', 'error');
+            return;
+        }
+    
+        const validUrl = isValidUrl(url);
+        if (!validUrl) {
+            showMessage('Please enter a valid URL (e.g., https://example.com)', 'error');
+            return;
+        }
+    
+        if (selectedScanTypes.length === 0) {
+            showMessage('Please select at least one scan type.', 'error');
+            return;
+        }
+    
         resultsTable.style.display = 'none';
-        resultsBox.innerHTML = `<p>Enumerating '${url}'...</p>`;
+        resultsBox.innerHTML = `<p>Enumerating '${validUrl}'...</p>`;
         
         const params = new URLSearchParams();
-        params.append('domain', url);
+        params.append('domain', validUrl);
         selectedScanTypes.forEach(type => params.append('scan_types', type));
         
         window.location.href = `/enumerate?${params.toString()}`;

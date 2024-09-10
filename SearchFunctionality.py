@@ -1,6 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 import urllib.parse
+import re
 
 def perform_search(engine, query, num_results):
     query = urllib.parse.quote_plus(query)
@@ -13,6 +14,8 @@ def perform_search(engine, query, num_results):
         url = f"https://www.google.com/search?q={query}&num={num_results}"
     elif engine == "Bing":
         url = f"https://www.bing.com/search?q={query}&count={num_results}"
+    elif engine == "DuckDuckGo":
+        url = f"https://html.duckduckgo.com/html/?q={query}"
     elif engine == "Baidu":
         url = f"https://www.baidu.com/s?wd={query}&rn={num_results}"
     else:
@@ -28,6 +31,8 @@ def perform_search(engine, query, num_results):
             return parse_google_results(soup, num_results)
         elif engine == "Bing":
             return parse_bing_results(soup, num_results)
+        elif engine == "DuckDuckGo":
+            return parse_duckduckgo_results(soup, num_results)
         elif engine == "Baidu":
             return parse_baidu_results(soup, num_results)
         
@@ -58,6 +63,18 @@ def parse_bing_results(soup, num_results):
             })
     return results
 
+def parse_duckduckgo_results(soup, num_results):
+    results = []
+    for div in soup.find_all('div', class_='result')[:num_results]:
+        title_element = div.find('h2', class_='result__title')
+        link_element = div.find('a', class_='result__url')
+        if title_element and link_element:
+            results.append({
+                'title': title_element.text.strip(),
+                'link': link_element['href']
+            })
+    return results
+
 def parse_baidu_results(soup, num_results):
     results = []
     for div in soup.find_all('div', class_=lambda x: x and x.startswith('result c-container'))[:num_results]:
@@ -83,6 +100,15 @@ def compile_results(all_results):
     
     return compiled_results
 
+def is_valid_domain(domain):
+    # This regex pattern allows for subdomains and various top-level domains
+    pattern = r'^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9]$'
+    return re.match(pattern, domain) is not None
+
+def extract_domain(url):
+    parsed_url = urllib.parse.urlparse(url)
+    return parsed_url.netloc
+
 if __name__ == "__main__":
     engine = input("Enter search engine (Google, Bing, DuckDuckGo, or Baidu): ")
     query = input("Enter your search query: ")
@@ -94,5 +120,10 @@ if __name__ == "__main__":
             print(f"\nResult {i}:")
             print(f"Title: {result['title']}")
             print(f"Link: {result['link']}")
+            domain = extract_domain(result['link'])
+            if is_valid_domain(domain):
+                print(f"Valid domain for enumeration: {domain}")
+            else:
+                print(f"Not a valid domain for enumeration: {domain}")
     else:
         print(results)  # Print error message
