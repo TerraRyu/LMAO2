@@ -167,6 +167,7 @@ from activescans.dig_enum import dig_enum
 from functions.nucleirecon import nuclei_enum
 from activescans.subzy_enum import subzy_enum
 from SearchFunctionality import is_valid_domain, extract_domain
+from OSINT.harvester import run_osint
 # Import other enumeration functions as needed
 
 logging.basicConfig(level=logging.INFO)
@@ -202,7 +203,8 @@ def enumerate_subdomains(domain: str, scan_types: List[str], progress_callback=N
         'dnsdumpster': {},
         'dnsrecon': {},
         'nuclei': {},
-        'subzy': {}
+        'subzy': {},
+        'harvester': {}
         # Add other result categories as needed
     }
     
@@ -446,6 +448,18 @@ def process_dnsrecon_results(result: Dict[str, Any], all_subdomains: Set[str], r
     logger.info(f"DNSRecon found {len(all_subdomains)} subdomains")
 
 # Add other processing functions as needed
+
+def process_osint_scan(domain: str, all_subdomains: Set[str], results: Dict[str, Any], lock: threading.Lock, progress_callback=None):
+    if progress_callback:
+        progress_callback('osint', 0)
+    
+    harvester_results = run_osint(domain)
+    
+    with lock:
+        results['harvester'] = harvester_results
+    
+    if progress_callback:
+        progress_callback('osint', 100)
 
 def process_dig_results(dig_results: Dict[str, Any], all_subdomains: Set[str], results: Dict[str, Any]) -> None:
     results['dig'] = dig_results

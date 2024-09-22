@@ -346,7 +346,6 @@ def enumerate():
     thread.start()
     
     return render_template('enumerate.html', domain=domain, processing=True, scan_types=scan_types)
-
 @app.route('/enumeration_status/<path:domain>')
 @limiter.limit("1000 per hour")  # Increased rate limit
 def enumeration_status(domain):
@@ -355,6 +354,10 @@ def enumeration_status(domain):
         if domain in enumeration_cache:
             result = enumeration_cache[domain]
             result['scan_types'] = result.get('scan_types', [])  # Ensure scan_types is included
+            # Include harvester results if available
+            if 'harvester' in result.get('results', {}):
+                result['harvester'] = result['results']['harvester']
+                
             return jsonify(result)
         else:
             return jsonify({"status": "processing", "progress": {}})

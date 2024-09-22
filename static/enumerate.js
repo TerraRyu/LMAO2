@@ -652,6 +652,42 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    function exportResults() {
+        const domain = new URLSearchParams(window.location.search).get('domain');
+        if (!domain) {
+            showError('No domain found for export.');
+            return;
+        }
+        
+        fetch('/export', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ domain: domain }),
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.blob();
+        })
+        .then(blob => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = `${domain}_enumeration_results.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showError('An error occurred while exporting results. Please try again.');
+        });
+    }
+
     // Start the enumeration status check
     checkEnumerationStatus();
 });
@@ -696,3 +732,4 @@ window.openSubTab = function(evt, tabName) {
     document.getElementById(tabName).style.display = "block";
     evt.currentTarget.className += " active";
 };
+

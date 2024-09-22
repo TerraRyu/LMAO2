@@ -2,6 +2,7 @@ import os
 import subprocess
 import sys
 import platform
+import shutil
 
 def run_command(command):
     result = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -79,10 +80,17 @@ try:
         print(stdout)
         if stderr:
             print(stderr)
+    # else:
+    #     print("dnsdumpster directory exists. Removing and recloning the repository...")
+    #     shutil.rmtree("dnsdumpster")  # Remove the existing directory
+    #     stdout, stderr = run_command("git clone https://github.com/nmmapper/dnsdumpster.git dnsdumpster")
+    #     print(stdout)
+    #     if stderr:
+    #         print(stderr)
 
     if not os.path.exists("dnsrecon"):
         print("Cloning DNSRecon repository...")
-        stdout, stderr = run_command("git clone https://github.com/darkoperator/dnsrecon.git dnsrecon")
+        stdout, stderr = run_command("git clone github.com/darkoperator/dnsrecon.git dnsrecon")
         print(stdout)
         if stderr:
             print(stderr)
@@ -94,6 +102,17 @@ try:
         print(stdout)
         if stderr:
             print(stderr)
+
+    if not os.path.exists("theHarvester"):
+        print("Cloning theHarvester repository...")
+        stdout, stderr = run_command("git clone https://github.com/laramies/theHarvester.git theHarvester")
+        print("Installing theHarvester dependencies...")
+        stdout, stderr = run_command(f"{sys.executable} -m pip install -r src/theHarvester/requirements.txt")
+        print(stdout)
+    else:
+        print("Installing theHarvester dependencies...")
+        stdout, stderr = run_command(f"{sys.executable} -m pip install -r theHarvester/requirements.txt")
+        print(stdout)
 
     # Check if Go is installed
     if not is_go_installed():
