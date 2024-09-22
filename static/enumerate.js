@@ -1,258 +1,3 @@
-// document.addEventListener('DOMContentLoaded', function() {
-//     checkEnumerationStatus();
-//     const queryInput = document.getElementById('queryInput');
-//     const submitBtn = document.getElementById('submitBtn');
-//     const scanButtons = document.querySelectorAll('.scan-btn');
-//     let selectedScanType = null;
-
-//     scanButtons.forEach(button => {
-//         button.addEventListener('click', function() {
-//             scanButtons.forEach(btn => btn.classList.remove('active'));
-//             this.classList.add('active');
-//             selectedScanType = this.id;
-//             submitBtn.disabled = false;
-//         });
-//     });
-
-//     submitBtn.addEventListener('click', function() {
-//         const query = queryInput.value.trim();
-//         if (!query) {
-//             alert('Please enter a search query or URL.');
-//             return;
-//         }
-
-//         if (selectedScanType === 'passiveScanBtn') {
-//             performPassiveScan(query);
-//         } else {
-//             alert('This scan type is not implemented yet.');
-//         }
-//     });
-// });
-
-// function checkEnumerationStatus() {
-//     console.log('Checking enumeration status for domain:', domain);
-//     const domain = new URLSearchParams(window.location.search).get('domain');
-//     fetch(`/enumeration_status/${encodeURIComponent(domain)}`)
-//         .then(response => {
-//             if (!response.ok) {
-//                 throw new Error(`HTTP error! status: ${response.status}`);
-//             }
-//             return response.json();
-//         })
-//         .then(data => {
-//             console.log('Received data:', data);
-//             if (data.status === 'complete') {
-//                 document.getElementById('loading').style.display = 'none';
-//                 document.getElementById('results').style.display = 'block';
-//                 displayResults(data.results);
-//             } else if (data.status === 'error') {
-//                 showError(`An error occurred: ${data.error}`);
-//             } else {
-//                 setTimeout(checkEnumerationStatus, 5000); // Check again in 5 seconds
-//             }
-//         })
-//         .catch(error => {
-//             console.error('Error:', error);
-//             showError('An error occurred while checking enumeration status');
-//         });
-// }
-
-// function populateResults(results) {
-//     populateSubdomains(results.subdomains);
-//     populateVirusTotal(results.virustotal);
-//     populateDNSDumpster(results.dnsdumpster);
-//     initializeTables();
-// }
-
-// function populateSubdomains(subdomains) {
-//     const tbody = document.getElementById('subdomains-body');
-//     tbody.innerHTML = '';
-//     for (const [subdomain, info] of Object.entries(subdomains)) {
-//         const row = tbody.insertRow();
-//         row.innerHTML = `
-//             <td>${subdomain}</td>
-//             <td>${info.ip || 'N/A'}</td>
-//             <td>${info.status || 'N/A'}</td>
-//             <td>${info.sources.join(', ')}</td>
-//         `;
-//     }
-// }
-
-// function populateVirusTotal(virustotal) {
-//     const tbody = document.getElementById('virustotal-body');
-//     tbody.innerHTML = '';
-//     for (const [subdomain, ips] of Object.entries(virustotal)) {
-//         const row = tbody.insertRow();
-//         row.innerHTML = `
-//             <td>${subdomain}</td>
-//             <td>${ips.join(', ')}</td>
-//         `;
-//     }
-// }
-
-// function populateDNSDumpster(dnsdumpster) {
-//     let html = '<h4>Subdomains</h4><ul>';
-//     for (const subdomain of dnsdumpster.subdomains) {
-//         html += `<li>${subdomain.domain} (IP: ${subdomain.ip}, ASN: ${subdomain.asn}, Server: ${subdomain.server})</li>`;
-//     }
-//     html += '</ul>';
-
-//     html += '<h4>MX Records</h4><ul>';
-//     for (const mx of dnsdumpster.mx_records) {
-//         html += `<li>${mx.exchange} (Preference: ${mx.preference}, IP: ${mx.ip})</li>`;
-//     }
-//     html += '</ul>';
-
-//     html += '<h4>TXT Records</h4><ul>';
-//     for (const txt of dnsdumpster.txt_records) {
-//         html += `<li>${txt}</li>`;
-//     }
-//     html += '</ul>';
-
-//     document.getElementById('dnsdumpster-content').innerHTML = html;
-// }
-
-// function initializeTables() {
-//     $('#subdomains-table').DataTable({
-//         "pageLength": 25,
-//         "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
-//         "order": []
-//     });
-//     $('#virustotal-table').DataTable({
-//         "pageLength": 25,
-//         "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
-//         "order": []
-//     });
-// }
-
-// function openTab(evt, tabName) {
-//     var i, tabContent, tabButtons;
-//     tabContent = document.getElementsByClassName("tab-content");
-//     for (i = 0; i < tabContent.length; i++) {
-//         tabContent[i].style.display = "none";
-//     }
-//     tabButtons = document.getElementsByClassName("tab-button");
-//     for (i = 0; i < tabButtons.length; i++) {
-//         tabButtons[i].className = tabButtons[i].className.replace(" active", "");
-//     }
-//     document.getElementById(tabName).style.display = "block";
-//     evt.currentTarget.className += " active";
-// }
-
-// function openSubTab(evt, tabName) {
-//     var i, tabContent, tabButtons;
-//     tabContent = document.getElementsByClassName("subtab-content");
-//     for (i = 0; i < tabContent.length; i++) {
-//         tabContent[i].style.display = "none";
-//     }
-//     tabButtons = document.getElementsByClassName("subtab-button");
-//     for (i = 0; i < tabButtons.length; i++) {
-//         tabButtons[i].className = tabButtons[i].className.replace(" active", "");
-//     }
-//     document.getElementById(tabName).style.display = "block";
-//     evt.currentTarget.className += " active";
-// }
-
-// function exportResults() {
-//     const domain = new URLSearchParams(window.location.search).get('domain');
-//     if (!domain) {
-//         showError('No domain found for export.');
-//         return;
-//     }
-
-//     fetch('/export', {
-//         method: 'POST',
-//         headers: {
-//             'Content-Type': 'application/json',
-//         },
-//         body: JSON.stringify({ domain: domain }),
-//     })
-//     .then(response => {
-//         if (!response.ok) {
-//             throw new Error('Network response was not ok');
-//         }
-//         return response.blob();
-//     })
-//     .then(blob => {
-//         const url = window.URL.createObjectURL(blob);
-//         const a = document.createElement('a');
-//         a.style.display = 'none';
-//         a.href = url;
-//         a.download = `${domain}_enumeration_results.xlsx`;
-//         document.body.appendChild(a);
-//         a.click();
-//         window.URL.revokeObjectURL(url);
-//     })
-//     .catch(error => {
-//         console.error('Error:', error);
-//         showError('An error occurred while exporting results. Please try again.');
-//     });
-// }
-
-// function performPassiveScan(domain) {
-//     fetch('/passive_scan', {
-//         method: 'POST',
-//         headers: {
-//             'Content-Type': 'application/json',
-//         },
-//         body: JSON.stringify({ domain: domain }),
-//     })
-//     .then(response => response.json())
-//     .then(data => {
-//         displayResults(data);
-//     })
-//     .catch(error => {
-//         console.error('Error:', error);
-//         alert('An error occurred during the passive scan. Please try again.');
-//     });
-// }
-
-// function displayResults(results) {
-//     const resultsBox = document.getElementById('resultsBox');
-//     if (!resultsDiv) {
-//         console.error('Results div not found');
-//         return;
-//     }
-
-//     let html = '<h2>Enumeration Results</h2>';
-    
-//     if (results.subdomains && Object.keys(results.subdomains).length > 0) {
-//         html += '<h3>Subdomains</h3><ul>';
-//         for (const [subdomain, info] of Object.entries(results.subdomains)) {
-//             html += `<li>${subdomain} (IP: ${info.ip}, Sources: ${info.sources.join(', ')})</li>`;
-//         }
-//         html += '</ul>';
-//     }
-
-//     if (results.virustotal) {
-//         resultsBox.innerHTML += '<h3>VirusTotal Results</h3>';
-//         for (const [subdomain, ips] of Object.entries(results.virustotal)) {
-//             resultsBox.innerHTML += `<p>${subdomain}: ${ips.join(', ')}</p>`;
-//         }
-//     }
-
-//     if (results.dnsdumpster) {
-//         resultsBox.innerHTML += '<h3>DNSDumpster Results</h3>';
-//         for (const [key, value] of Object.entries(results.dnsdumpster)) {
-//             resultsBox.innerHTML += `<p>${key}: ${JSON.stringify(value)}</p>`;
-//         }
-//     }
-// }
-
-// function showError(message) {
-//     const statusMessage = document.getElementById('status-message');
-//     if (statusMessage) {
-//         statusMessage.innerHTML = `<div class="alert alert-error">${message}</div>`;
-//     } else {
-//         console.error('Status message div not found');
-//     }
-//     const loadingDiv = document.getElementById('loading');
-//     if (loadingDiv) {
-//         loadingDiv.style.display = 'none';
-//     }
-// }
-
-
 document.addEventListener('DOMContentLoaded', function() {
     const urlParams = new URLSearchParams(window.location.search);
     const domain = urlParams.get('domain');
@@ -373,6 +118,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 html += `<button class="subtab-button" onclick="openSubTab(event, '${scanType}DNSRecon')">DNS Recon</button>`;
                 html += `<button class="subtab-button" onclick="openSubTab(event, '${scanType}Dig')">Dig</button>`;
                 html += `<button class="subtab-button" onclick="openSubTab(event, '${scanType}Subzy')">Subzy</button>`;
+            } else if (scanType === 'osint') {
+                html += `<button class="subtab-button" onclick="openSubTab(event, '${scanType}Harvester')">Harvester</button>`;
             }
             html += '</div>';
     
@@ -404,6 +151,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
                 html += `<div id="${scanType}Subzy" class="subtab-content" style="display: none">`;
                 html += createSubzyContent(results.subzy);
+                html += '</div>';
+            } else if (scanType === 'osint') {
+                html += `<div id="${scanType}Harvester" class="subtab-content" style="display: none">`;
+                html += createHarvesterContent(results.harvester);
                 html += '</div>';
             }
     
@@ -618,6 +369,30 @@ document.addEventListener('DOMContentLoaded', function() {
         return html;
     }
 
+    function createHarvesterContent(harvesterResults) {
+        let html = '<h3>Harvester Results</h3>';
+        
+        if (harvesterResults.employee_information) {
+            html += '<h4>Employee Information</h4>';
+            html += '<table class="display"><thead><tr><th>Type</th><th>Information</th></tr></thead><tbody>';
+            for (const [key, value] of Object.entries(harvesterResults.employee_information)) {
+                html += `<tr><td>${key}</td><td>${Array.isArray(value) ? value.join(', ') : value}</td></tr>`;
+            }
+            html += '</tbody></table>';
+        }
+        
+        if (harvesterResults.potential_social_engineering) {
+            html += '<h4>Potential Social Engineering Information</h4>';
+            html += '<table class="display"><thead><tr><th>Type</th><th>Information</th></tr></thead><tbody>';
+            for (const [key, value] of Object.entries(harvesterResults.potential_social_engineering)) {
+                html += `<tr><td>${key}</td><td>${Array.isArray(value) ? value.join(', ') : value}</td></tr>`;
+            }
+            html += '</tbody></table>';
+        }
+        
+        return html;
+    }
+
     function initializeTables() {
         $('#compiledResultsTable').DataTable({
             "pageLength": 25,
@@ -732,4 +507,3 @@ window.openSubTab = function(evt, tabName) {
     document.getElementById(tabName).style.display = "block";
     evt.currentTarget.className += " active";
 };
-
