@@ -1,0 +1,8 @@
+#!C:\Users\simwe\OneDrive\Documents\GitHub\LMAO2\venv\Scripts\python.exe
+
+
+from wafw00f import main
+
+
+if __name__ == '__main__':
+    main.main()

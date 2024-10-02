@@ -114,12 +114,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 html += `<button class="subtab-button" onclick="openSubTab(event, '${scanType}VirusTotal')">VirusTotal</button>`;
                 html += `<button class="subtab-button" onclick="openSubTab(event, '${scanType}DNSDumpster')">DNSDumpster</button>`;
                 html += `<button class="subtab-button" onclick="openSubTab(event, '${scanType}Nuclei')">Nuclei</button>`;
+                html += `<button class="subtab-button" onclick="openSubTab(event, '${scanType}Shodan')">Shodan</button>`;
             } else if (scanType === 'active') {
                 html += `<button class="subtab-button" onclick="openSubTab(event, '${scanType}DNSRecon')">DNS Recon</button>`;
                 html += `<button class="subtab-button" onclick="openSubTab(event, '${scanType}Dig')">Dig</button>`;
                 html += `<button class="subtab-button" onclick="openSubTab(event, '${scanType}Subzy')">Subzy</button>`;
             } else if (scanType === 'osint') {
                 html += `<button class="subtab-button" onclick="openSubTab(event, '${scanType}Harvester')">Harvester</button>`;
+                html += `<button class="subtab-button" onclick="openSubTab(event, '${scanType}SpiderFoot')">SpiderFoot</button>`;
+                html += `<button class="subtab-button" onclick="openSubTab(event, '${scanType}TruffleHog')">TruffleHog</button>`;
             }
             html += '</div>';
     
@@ -140,6 +143,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 html += `<div id="${scanType}Nuclei" class="subtab-content" style="display: none">`;
                 html += createNucleiContent(results.nuclei);
                 html += '</div>';
+
+                html += `<div id="${scanType}Shodan" class="subtab-content" style="display: none">`;
+                html += createShodanContent(results.shodan);
+                html += '</div>';
             } else if (scanType === 'active') {
                 html += `<div id="${scanType}DNSRecon" class="subtab-content" style="display: none">`;
                 html += createDNSReconContent(results.dnsrecon);
@@ -156,13 +163,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 html += `<div id="${scanType}Harvester" class="subtab-content" style="display: none">`;
                 html += createHarvesterContent(results.harvester);
                 html += '</div>';
+
+                html += `<div id="${scanType}SpiderFoot" class="subtab-content" style="display: none">`;
+                html += createSpiderFootContent(results.spiderfoot);
+                html += '</div>';
+
+                html += `<div id="${scanType}TruffleHog" class="subtab-content" style="display: none">`;
+                html += createTruffleHogContent(results.trufflehog);
+                html += '</div>';
             }
     
             html += '</div>'; // Close tab-content div
         });
     
         resultsDiv.innerHTML = html;
-        initializeTables();
+        try {
+            initializeTables();
+        } catch (error) {
+            console.error("Error initializing tables:", error);
+        }
     }
     
 
@@ -187,24 +206,136 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function createDNSDumpsterContent(dnsdumpster) {
-        let html = '<h4>Subdomains</h4><ul>';
-        for (const subdomain of dnsdumpster.subdomains) {
-            html += `<li>${subdomain.domain} (IP: ${subdomain.ip}, ASN: ${subdomain.asn}, Server: ${subdomain.server})</li>`;
-        }
-        html += '</ul>';
+        // let html = '<h4>Subdomains</h4><ul>';
+        // for (const subdomain of dnsdumpster.subdomains) {
+        //     html += `<li>${subdomain.domain} (IP: ${subdomain.ip}, ASN: ${subdomain.asn}, Server: ${subdomain.server})</li>`;
+        // }
+        // html += '</ul>';
 
-        html += '<h4>MX Records</h4><ul>';
-        for (const mx of dnsdumpster.mx_records) {
-            html += `<li>${mx.exchange} (Preference: ${mx.preference}, IP: ${mx.ip})</li>`;
-        }
-        html += '</ul>';
+        // html += '<h4>MX Records</h4><ul>';
+        // for (const mx of dnsdumpster.mx_records) {
+        //     html += `<li>${mx.exchange} (Preference: ${mx.preference}, IP: ${mx.ip})</li>`;
+        // }
+        // html += '</ul>';
 
-        html += '<h4>TXT Records</h4><ul>';
-        for (const txt of dnsdumpster.txt_records) {
-            html += `<li>${txt}</li>`;
-        }
-        html += '</ul>';
+        // html += '<h4>TXT Records</h4><ul>';
+        // for (const txt of dnsdumpster.txt_records) {
+        //     html += `<li>${txt}</li>`;
+        // }
+        // html += '</ul>';
 
+        // return html;
+        if (dnsdumpster && dnsdumpster.error) {
+            return `<h3>DNSDumpster Error</h3><p>${dnsdumpster.error}</p>`;
+        }
+        let html = '<h4>Subdomains</h4>';
+        if (dnsdumpster && dnsdumpster.subdomains && Array.isArray(dnsdumpster.subdomains)) {
+            html += '<ul>';
+            for (const subdomain of dnsdumpster.subdomains) {
+                html += `<li>${subdomain.domain || 'N/A'} (IP: ${subdomain.ip || 'N/A'}, ASN: ${JSON.stringify(subdomain.asn) || 'N/A'}, Server: ${subdomain.server || 'N/A'})</li>`;
+            }
+            html += '</ul>';
+        } else {
+            html += '<p>No subdomains found or invalid data structure.</p>';
+        }
+    
+        html += '<h4>MX Records</h4>';
+        if (dnsdumpster && dnsdumpster.mx_records && Array.isArray(dnsdumpster.mx_records)) {
+            html += '<ul>';
+            for (const mx of dnsdumpster.mx_records) {
+                html += `<li>${mx.exchange || 'N/A'} (Preference: ${mx.preference || 'N/A'}, IP: ${mx.ip || 'N/A'})</li>`;
+            }
+            html += '</ul>';
+        } else {
+            html += '<p>No MX records found or invalid data structure.</p>';
+        }
+    
+        html += '<h4>TXT Records</h4>';
+        if (dnsdumpster && dnsdumpster.txt_records && Array.isArray(dnsdumpster.txt_records)) {
+            html += '<ul>';
+            for (const txt of dnsdumpster.txt_records) {
+                html += `<li>${txt}</li>`;
+            }
+            html += '</ul>';
+        } else {
+            html += '<p>No TXT records found or invalid data structure.</p>';
+        }
+    
+        return html;
+    }
+
+    function createShodanContent(shodanResults) {
+        let html = '<h3>Shodan Results</h3>';
+
+        if (!shodanResults || typeof shodanResults !== 'object') {
+            return html + '<p>No Shodan results available or invalid data structure.</p>';
+        }
+        
+        if (shodanResults.error) {
+            html += `<p class="error">Error: ${shodanResults.error}</p>`;
+        } else {
+            html += '<h4>IP Addresses</h4>';
+            html += createShodanTable(shodanResults.ip_addresses, ['IP Address']);
+            
+            html += '<h4>Open Ports</h4>';
+            html += createShodanTable(shodanResults.open_ports, ['Port']);
+            
+            html += '<h4>Vulnerabilities</h4>';
+            html += createShodanTable(shodanResults.vulnerabilities, ['Vulnerability']);
+            
+            html += '<h4>Technologies</h4>';
+            html += createShodanTable(shodanResults.technologies, ['Technology']);
+            
+            html += '<h4>Hostnames</h4>';
+            html += createShodanTable(shodanResults.hostnames, ['Hostname']);
+            
+            html += '<h4>Operating Systems</h4>';
+            html += createShodanTable(shodanResults.operating_systems, ['OS']);
+        }
+        
+        return html;
+    }
+
+    function createShodanTable(items, headers) {
+        if (!Array.isArray(items) || items.length === 0) {
+            return '<table class="display"><thead><tr><th>No Data</th></tr></thead><tbody><tr><td>No results found.</td></tr></tbody></table>';
+        }
+    
+        // let html = '<table class="display"><thead><tr>';
+        // headers.forEach(header => {
+        //     html += `<th>${header}</th>`;
+        // });
+        // html += '</tr></thead><tbody>';
+        // items.forEach(item => {
+        //     html += '<tr>';
+        //     if (typeof item === 'object' && item !== null) {
+        //         Object.values(item).forEach(value => {
+        //             html += `<td>${value}</td>`;
+        //         });
+        //     } else {
+        //         html += `<td>${item}</td>`;
+        //     }
+        //     html += '</tr>';
+        // });
+        // html += '</tbody></table>';
+        // return html;
+        let html = '<table class="display"><thead><tr>';
+        headers.forEach(header => {
+            html += `<th>${header}</th>`;
+        });
+        html += '</tr></thead><tbody>';
+        items.forEach(item => {
+            html += '<tr>';
+            if (typeof item === 'object' && item !== null) {
+                headers.forEach(header => {
+                    html += `<td>${item[header] || 'N/A'}</td>`;
+                });
+            } else {
+                html += `<td>${item || 'N/A'}</td>`;
+            }
+            html += '</tr>';
+        });
+        html += '</tbody></table>';
         return html;
     }
 
@@ -393,26 +524,126 @@ document.addEventListener('DOMContentLoaded', function() {
         return html;
     }
 
-    function initializeTables() {
-        $('#compiledResultsTable').DataTable({
-            "pageLength": 25,
-            "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
-            "order": []
-        });
-        $('#virusTotalTable').DataTable({ 
-            "pageLength": 25,
-            "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
-            "order": []
-        });
-        $('.display').each(function() {
-            if ($.fn.DataTable.isDataTable(this)) {
-                $(this).DataTable().destroy();
-            }
-            $(this).DataTable({
-                "pageLength": 25,
-                "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
-                "order": []
+    function createSpiderFootContent(spiderFootResults) {
+        let html = '<h3>SpiderFoot Results</h3>';
+        
+        if (spiderFootResults.employee_information) {
+            html += '<h4>Employee Information</h4>';
+            html += '<table class="display"><thead><tr><th>Type</th><th>Value</th></tr></thead><tbody>';
+            spiderFootResults.employee_information.forEach(item => {
+                html += `<tr><td>${item.type}</td><td>${item.value}</td></tr>`;
             });
+            html += '</tbody></table>';
+        }
+        
+        if (spiderFootResults.potential_social_engineering) {
+            html += '<h4>Potential Social Engineering Information</h4>';
+            html += '<table class="display"><thead><tr><th>Type</th><th>Value</th></tr></thead><tbody>';
+            spiderFootResults.potential_social_engineering.forEach(item => {
+                html += `<tr><td>${item.type}</td><td>${item.value}</td></tr>`;
+            });
+            html += '</tbody></table>';
+        }
+        
+        if (spiderFootResults.github_repos) {
+            html += '<h4>Publicly Accessible GitHub Repositories</h4>';
+            html += '<ul>';
+            spiderFootResults.github_repos.forEach(repo => {
+                html += `<li><a href="${repo}" target="_blank">${repo}</a></li>`;
+            });
+            html += '</ul>';
+        }
+        
+        return html;
+    }
+
+    function createTruffleHogContent(truffleHogResults) {
+        let html = '<h3>TruffleHog Results</h3>';
+        
+        if (!truffleHogResults) {
+            return html + '<p>No TruffleHog results available.</p>';
+        }
+    
+        if (truffleHogResults.error) {
+            return html + `<p class="error">Error: ${truffleHogResults.error}</p>`;
+        }
+    
+        html += '<h4>Exposed Secrets</h4>';
+        html += createTruffleHogTable(truffleHogResults.exposed_secrets);
+        
+        html += '<h4>Sensitive Information</h4>';
+        html += createTruffleHogTable(truffleHogResults.sensitive_information);
+        
+        return html;
+    }
+    
+    function createTruffleHogTable(items) {
+        if (!items || items.length === 0) {
+            return '<p>No results found.</p>';
+        }
+    
+        let html = '<table class="display"><thead><tr><th>Type</th><th>File</th><th>Commit</th><th>Detector</th><th>Raw</th></tr></thead><tbody>';
+        for (const item of items) {
+            html += `<tr>
+                <td>${item.type || 'N/A'}</td>
+                <td>${item.file || 'N/A'}</td>
+                <td>${item.commit || 'N/A'}</td>
+                <td>${item.detector || 'N/A'}</td>
+                <td>${item.raw || 'N/A'}</td>
+            </tr>`;
+        }
+        html += '</tbody></table>';
+        return html;
+    }
+
+    function initializeTables() {
+        // $('#compiledResultsTable').DataTable({
+        //     "pageLength": 25,
+        //     "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
+        //     "order": []
+        // });
+        // $('#virusTotalTable').DataTable({ 
+        //     "pageLength": 25,
+        //     "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
+        //     "order": []
+        // });
+        // $('.display').each(function() {
+        //     if ($.fn.DataTable.isDataTable(this)) {
+        //         $(this).DataTable().destroy();
+        //     }
+        //     $(this).DataTable({
+        //         "pageLength": 25,
+        //         "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
+        //         "order": []
+        //     });
+        // });
+        $('.display').each(function() {
+            try {
+                if ($.fn.DataTable.isDataTable(this)) {
+                    $(this).DataTable().destroy();
+                }
+                
+                // Check if the table has any rows
+                if ($(this).find('tbody tr').length > 0) {
+                    $(this).DataTable({
+                        "pageLength": 25,
+                        "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
+                        "order": [],
+                        "columnDefs": [
+                            { "targets": '_all', "defaultContent": "N/A" }
+                        ],
+                        "initComplete": function(settings, json) {
+                            console.log("DataTable initialized successfully");
+                        }
+                    });
+                } else {
+                    console.log("Table is empty, not initializing DataTable");
+                    $(this).after('<p>No data available in table</p>');
+                }
+            } catch (error) {
+                console.error("Error initializing DataTable:", error);
+                $(this).after('<p>Error loading table data</p>');
+            }
         });
     }
 

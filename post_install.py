@@ -2,19 +2,35 @@ import os
 import subprocess
 import sys
 import platform
-import shutil
+import venv
 
 def run_command(command):
-    result = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    return result.stdout.decode(), result.stderr.decode()
+    try:
+        result = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        print(result.stdout)
+        return result.stdout, result.stderr
+    except subprocess.CalledProcessError as e:
+        print(f"Command failed with exit code {e.returncode}")
+        print(f"stdout: {e.stdout}")
+        print(f"stderr: {e.stderr}")
+        raise
+
+def create_virtual_environment():
+    venv_dir = os.path.join(os.getcwd(), "venv")
+    print(f"Creating virtual environment in {venv_dir}")
+    venv.create(venv_dir, with_pip=True)
+    return venv_dir
+
+def get_venv_python(venv_dir):
+    if platform.system() == "Windows":
+        return os.path.join(venv_dir, "Scripts", "python.exe")
+    return os.path.join(venv_dir, "bin", "python")
 
 def is_tool_installed(tool_name):
     try:
         subprocess.run([tool_name, "--version"], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         return True
-    except subprocess.CalledProcessError:
-        return False
-    except FileNotFoundError:
+    except (subprocess.CalledProcessError, FileNotFoundError):
         return False
 
 def is_go_installed():
@@ -23,7 +39,7 @@ def is_go_installed():
         return True
     except subprocess.CalledProcessError:
         return False
-    
+
 def install_go():
     system = platform.system().lower()
     if system == "linux":
@@ -37,15 +53,6 @@ def install_go():
         print("Please install Go manually on Windows. Visit https://golang.org/doc/install for instructions.")
     else:
         print(f"Unsupported system: {system}. Please install Go manually from https://golang.org/doc/install")
-
-def is_nuclei_installed():
-    try:
-        subprocess.run("nuclei -version", shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        return True
-    except subprocess.CalledProcessError:
-        return False
-    except FileNotFoundError:
-        return False
 
 def install_nuclei():
     print("Installing Nuclei...")
@@ -65,56 +72,106 @@ def install_subzy():
         print(f"Failed to install Subzy: {e}")
         print("Please try installing Subzy manually.")
 
-try:
-    # Install main project requirements
-    print("Installing main project requirements...")
-    stdout, stderr = run_command(f"{sys.executable} -m pip install -r requirements.txt")
-    print(stdout)
-    if stderr:
-        print(stderr)
+# def clone_or_update_repo(repo_url, folder_name):
+#     if not os.path.exists("repos"):
+#         os.makedirs("repos")
+#     source_folder = os.path.join(os.getcwd(), "repos", folder_name)
+#     print(os.path.exists(source_folder))
+#     if not os.path.exists(source_folder):
+#         os.chdir("repos")
+#         print(os.path)
+#         print(f"Cloning {repo_url}...")
+#         run_command(f"git clone {repo_url}")
+#         print(f"Repository cloned successfully to {source_folder}")
+#     else:
+#         print(f"Updating existing repository at {source_folder}...")
+#         os.chdir(folder_name)
+#         run_command("git pull")
+#         os.chdir("..")
+#         print(f"Repository updated successfully")
 
-    # Clone the Git repository if not already cloned
-    if not os.path.exists("dnsdumpster"):
-        print("Cloning dnsdumpster repository...")
-        stdout, stderr = run_command("git clone https://github.com/nmmapper/dnsdumpster.git dnsdumpster")
-        print(stdout)
-        if stderr:
-            print(stderr)
-    # else:
-    #     print("dnsdumpster directory exists. Removing and recloning the repository...")
-    #     shutil.rmtree("dnsdumpster")  # Remove the existing directory
-    #     stdout, stderr = run_command("git clone https://github.com/nmmapper/dnsdumpster.git dnsdumpster")
-    #     print(stdout)
-    #     if stderr:
-    #         print(stderr)
-
-    if not os.path.exists("dnsrecon"):
-        print("Cloning DNSRecon repository...")
-        stdout, stderr = run_command("git clone github.com/darkoperator/dnsrecon.git dnsrecon")
-        print(stdout)
-        if stderr:
-            print(stderr)
-
-    # Install the cloned repository's dependencies if a requirements.txt exists
-    if os.path.exists("src/dnsdumpster/requirements.txt"):
-        print("Installing dnsdumpster requirements...")
-        stdout, stderr = run_command(f"{sys.executable} -m pip install -r src/dnsdumpster/requirements.txt")
-        print(stdout)
-        if stderr:
-            print(stderr)
-
-    if not os.path.exists("theHarvester"):
-        print("Cloning theHarvester repository...")
-        stdout, stderr = run_command("git clone https://github.com/laramies/theHarvester.git theHarvester")
-        print("Installing theHarvester dependencies...")
-        stdout, stderr = run_command(f"{sys.executable} -m pip install -r src/theHarvester/requirements.txt")
-        print(stdout)
+def clone_or_update_repo(repo_url, folder_name):
+    # Check if the "repos" folder exists, create it if not
+    repos_folder = os.path.join(os.getcwd(), "repos")
+    if not os.path.exists(repos_folder):
+        os.makedirs(repos_folder)
+    
+    # Set the folder path for the repository
+    source_folder = os.path.join(repos_folder, folder_name)
+    
+    os.chdir(repos_folder)
+    
+    if not os.path.exists(source_folder):
+        print(f"Cloning {repo_url} into {source_folder}...")
+        run_command(f"git clone {repo_url}")
+        print(f"Repository cloned successfully to {source_folder}")
     else:
-        print("Installing theHarvester dependencies...")
-        stdout, stderr = run_command(f"{sys.executable} -m pip install -r theHarvester/requirements.txt")
-        print(stdout)
+        print(f"Updating existing repository at {source_folder}...")
+        os.chdir(folder_name)
+        run_command("git pull")
+        print(f"Repository updated successfully")
+    
+    os.chdir(os.path.dirname(repos_folder))  # Go back to the main directory
 
-    # Check if Go is installed
+def install_requirements(requirements_file):
+    print(f"Installing requirements from {requirements_file}...")
+    try:
+        run_command(f"{sys.executable} -m pip install -r {requirements_file}")
+        print("Requirements installed successfully.")
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to install requirements: {e}")
+        print("Please try installing the requirements manually.")
+
+def main():
+    venv_dir = create_virtual_environment()
+    venv_python = get_venv_python(venv_dir)
+
+    # Install requirements
+    print("Installing requirements...")
+    with open('requirements.txt', 'r') as f:
+        requirements = f.read().splitlines()
+    
+    for requirement in requirements:
+        if requirement.strip() and not requirement.startswith('#'):
+            try:
+                print(f"Installing {requirement}")
+                run_command(f'"{venv_python}" -m pip install {requirement}')
+            except subprocess.CalledProcessError:
+                print(f"Failed to install {requirement}")
+                continue
+
+    # Clone or update repositories
+    repos = [
+        "https://github.com/nmmapper/dnsdumpster.git",
+        "https://github.com/darkoperator/dnsrecon.git",
+        "https://github.com/laramies/theHarvester.git",
+        "https://github.com/smicallef/spiderfoot.git",
+        "https://github.com/trufflesecurity/trufflehog.git"
+    ]
+
+    for repo_url in repos:
+        folder_name = repo_url.split("/")[-1].replace(".git", "")
+        clone_or_update_repo(repo_url, folder_name)
+
+    # Install additional requirements for cloned repositories
+    additional_requirements = [
+        "repos/dnsdumpster/requirements.txt",
+        "repos/dnsrecon/requirements.txt",
+        "repos/theHarvester/requirements.txt",
+        "repos/spiderfoot/requirements.txt",
+    ]
+
+    for req_file in additional_requirements:
+        if os.path.exists(req_file):
+            print(f"Installing requirements from {req_file}...")
+            run_command(f'"{venv_python}" -m pip install -r {req_file}')
+
+    # Install TruffleHog
+    print("Installing TruffleHog...")
+    os.chdir("repos/trufflehog")
+    run_command("go build")
+    os.chdir("../..")
+
     if not is_go_installed():
         print("Go is not installed. Attempting to install Go...")
         install_go()
@@ -136,9 +193,72 @@ try:
         if not is_tool_installed("subzy"):
             print("Failed to install Subzy. Please install it manually.")
 
-    print("Setup completed successfully.")
 
-except subprocess.CalledProcessError as e:
-    print(f"An error occurred: {e}")
-    print(f"Command output: {e.stdout.decode()}")
-    print(f"Command error: {e.stderr.decode()}")
+    print("Setup completed successfully.")
+    
+# try:
+#     # Install main project requirements
+#     print("Installing main project requirements...")
+#     stdout, stderr = run_command(f"{sys.executable} -m pip install -r requirements.txt")
+#     print(stdout)
+#     if stderr:
+#         print(stderr)
+
+#     # Clone or update repositories
+#     clone_or_update_repo("https://github.com/nmmapper/dnsdumpster.git", "dnsdumpster")
+#     clone_or_update_repo("https://github.com/darkoperator/dnsrecon.git", "dnsrecon")
+#     clone_or_update_repo("https://github.com/laramies/theHarvester.git", "theHarvester")
+#     clone_or_update_repo("https://github.com/smicallef/spiderfoot.git", "spiderfoot")
+#     clone_or_update_repo("https://github.com/trufflesecurity/trufflehog.git", "trufflehog")
+
+#     # Install requirements for cloned repositories
+#     install_requirements("repos/dnsdumpster/requirements.txt")
+#     install_requirements("repos/dnsrecon/requirements.txt")
+#     install_requirements("repos/theHarvester/requirements.txt")
+#     install_requirements("repos/spiderfoot/requirements.txt")
+
+#     # # Install SpiderFoot
+#     # print("Installing SpiderFoot...")
+#     # os.chdir("spiderfoot")
+#     # run_command(f"{sys.executable} setup.py install")
+#     # os.chdir("..")
+#     # print("SpiderFoot installed successfully.")
+
+#     # Install TruffleHog
+#     print("Installing TruffleHog...")
+#     os.chdir("repos/trufflehog")
+#     run_command("go build")
+#     os.chdir("..")
+#     print("TruffleHog installed successfully.")
+
+#     # Check if Go is installed
+#     if not is_go_installed():
+#         print("Go is not installed. Attempting to install Go...")
+#         install_go()
+#         if not is_go_installed():
+#             print("Failed to install Go. Please install it manually from https://golang.org/dl/ and ensure it's in your PATH.")
+#             sys.exit(1)
+
+#     # Check if Nuclei is installed
+#     if not is_tool_installed("nuclei"):
+#         print("Nuclei is not installed. Installing Nuclei...")
+#         install_nuclei()
+#         if not is_tool_installed("nuclei"):
+#             print("Failed to install Nuclei. Please install it manually.")
+
+#     # Check if Subzy is installed
+#     if not is_tool_installed("subzy"):
+#         print("Subzy is not installed. Installing Subzy...")
+#         install_subzy()
+#         if not is_tool_installed("subzy"):
+#             print("Failed to install Subzy. Please install it manually.")
+
+#     print("Setup completed successfully.")
+
+# except subprocess.CalledProcessError as e:
+#     print(f"An error occurred: {e}")
+#     print(f"Command output: {e.stdout.decode()}")
+#     print(f"Command error: {e.stderr.decode()}")
+
+if __name__ == "__main__":
+    main()

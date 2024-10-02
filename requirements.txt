@@ -12,3 +12,6 @@ graphviz
 flask
 flask-limiter
 waitress
+shodan
+Nominatim
+venv

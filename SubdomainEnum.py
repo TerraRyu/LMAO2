@@ -15,6 +15,9 @@ from functions.nucleirecon import nuclei_enum
 from activescans.subzy_enum import subzy_enum
 from SearchFunctionality import is_valid_domain, extract_domain
 from OSINT.harvester import run_osint
+from OSINT.spiderfoot_enum import run_spiderfoot
+from OSINT.trufflehog_enum import run_trufflehog
+from functions.shodan_enum import shodan_enum 
 # Import other enumeration functions as needed
 
 logging.basicConfig(level=logging.INFO)
@@ -51,7 +54,10 @@ def enumerate_subdomains(domain: str, scan_types: List[str], progress_callback=N
         'dnsrecon': {},
         'nuclei': {},
         'subzy': {},
-        'harvester': {}
+        'harvester': {},
+        'spiderfoot': {},
+        'trufflehog': {},
+        'shodan': {}
         # Add other result categories as needed
     }
     
@@ -97,21 +103,35 @@ def process_passive_scan(domain: str, all_subdomains: Set[str], results: Dict[st
     
     vt_results = virustotal_enum(domain)
     if progress_callback:
-        progress_callback('passive', 33)
+        progress_callback('passive', 20)
     
     dns_results = dnsdumpster_enum(domain)
     if progress_callback:
-        progress_callback('passive', 66)
+        progress_callback('passive', 40)
     
-    nuclei_results = nuclei_enum(domain)  # Add Nuclei scan
+    nuclei_results = nuclei_enum(domain)
+    if progress_callback:
+        progress_callback('passive', 60)
+    
+    shodan_results = shodan_enum(domain)  # Use the new shodan_enum function
+    if progress_callback:
+        progress_callback('passive', 80)
     
     with lock:
         process_virustotal_results(vt_results, all_subdomains, results)
-        process_dnsdumpster_results(dns_results, all_subdomains, results)
-        process_nuclei_results(nuclei_results, results)  # Add this line
+        if 'error' not in dns_results:
+            process_dnsdumpster_results(dns_results, all_subdomains, results)
+        else:
+            results['dnsdumpster'] = dns_results
+        process_nuclei_results(nuclei_results, results)
+        process_shodan_results(shodan_results, results)
     
     if progress_callback:
         progress_callback('passive', 100)
+
+def process_shodan_results(shodan_results: Dict[str, Any], results: Dict[str, Any]) -> None:
+    results['shodan'] = shodan_results
+    logger.info(f"Shodan found {len(shodan_results.get('ip_addresses', []))} IP addresses")
 
 def process_active_scan(domain: str, all_subdomains: Set[str], results: Dict[str, Any], lock: threading.Lock, progress_callback=None):
     if progress_callback:
@@ -138,11 +158,29 @@ def process_active_scan(domain: str, all_subdomains: Set[str], results: Dict[str
         progress_callback('active', 100)
 
 def process_osint_scan(domain: str, all_subdomains: Set[str], results: Dict[str, Any], lock: threading.Lock, progress_callback=None):
-    # Implement OSINT scan logic here
+    if progress_callback:
+        progress_callback('osint', 0)
+    
+    print(f"\nRunning OSINT scan for domain: {domain}")
+    
+    spiderfoot_results = run_spiderfoot(domain)
+    print("\nSpiderFoot Results:")
+    print(json.dumps(spiderfoot_results, indent=2))
+    
+    # Construct GitHub repo URL (this is a simple assumption, adjust as needed)
+    github_repo_url = f"https://github.com/{domain.split('.')[0]}/{domain.split('.')[0]}.git"
+    trufflehog_results = run_trufflehog(github_repo_url)
+    print("\nTruffleHog Results:")
+    print(json.dumps(trufflehog_results, indent=2))
+    
+    with lock:
+        results['spiderfoot'] = spiderfoot_results
+        results['trufflehog'] = trufflehog_results
+    
     if progress_callback:
         progress_callback('osint', 100)
-    pass
-
+        
+        
 def process_virustotal_results(result: Dict[str, Any], all_subdomains: Set[str], results: Dict[str, Any]) -> None:
     results['virustotal'] = result
     for subdomain, ips in result.items():

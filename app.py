@@ -146,6 +146,10 @@ def enumeration_status(domain):
             # Include harvester results if available
             if 'harvester' in result.get('results', {}):
                 result['harvester'] = result['results']['harvester']
+            if 'spiderfoot' in result.get('results', {}):
+                result['spiderfoot'] = result['results']['spiderfoot']
+            if 'trufflehog' in result.get('results', {}):
+                result['trufflehog'] = result['results']['trufflehog']
                 
             return jsonify(result)
         else:
@@ -197,4 +201,9 @@ def is_valid_url(url):
         return False
 
 if __name__ == '__main__':
-    serve(app, host='127.0.0.1', port=5000)
+    try:
+        serve(app, host='127.0.0.1', port=5000)
+    except KeyboardInterrupt:
+        print("\nServer stopped by user.")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")

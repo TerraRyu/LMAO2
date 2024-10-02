@@ -9,6 +9,7 @@ import dns.resolver
 import socket
 from typing import Dict, List, Any
 import logging
+import importlib
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -16,47 +17,42 @@ logger = logging.getLogger(__name__)
 # Ensure the path to dnsdumpster.py is correct
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
-dnsdumpster_dir = os.path.join(parent_dir, 'dnsdumpster')
+dnsdumpster_dir = os.path.join(parent_dir, 'repos', 'dnsdumpster')
+print(dnsdumpster_dir)
 sys.path.append(dnsdumpster_dir)
 
-def update_dnsdumpster_repo() -> None:
-    logger.info("Checking for DNSDumpster updates...")
-    repo_url = "https://github.com/nmmapper/dnsdumpster.git"
-    
-    if not os.path.exists(dnsdumpster_dir):
-        logger.info("DNSDumpster repository not found. Cloning...")
-        try:
-            git.Repo.clone_from(repo_url, dnsdumpster_dir)
-            logger.info("DNSDumpster repository cloned successfully.")
-        except git.exc.GitCommandError as e:
-            logger.error(f"Error cloning repository: {e}")
-            logger.info("Attempting to pull from the repository...")
-            try:
-                repo = git.Repo.init(dnsdumpster_dir)
-                origin = repo.create_remote('origin', repo_url)
-                origin.fetch()
-                origin.pull(origin.refs[0].remote_head)
-                logger.info("Successfully pulled DNSDumpster repository.")
-            except git.exc.GitCommandError as pull_error:
-                logger.error(f"Error pulling repository: {pull_error}")
-                logger.warning("Please manually clone the repository from https://github.com/nmmapper/dnsdumpster.git")
-    else:
-        try:
-            repo = git.Repo(dnsdumpster_dir)
-            origin = repo.remotes.origin
-            origin.fetch()
-            if repo.head.commit != origin.refs.master.commit:
-                logger.info("Updates available. Pulling latest changes...")
-                origin.pull()
-                logger.info("DNSDumpster repository updated successfully.")
-            else:
-                logger.info("DNSDumpster repository is up to date.")
-        except git.exc.GitCommandError as e:
-            logger.error(f"An error occurred while updating DNSDumpster: {e}")
+# from repos.dnsdumpster.dnsdumpster import main as dnsdumpster_main
 
-update_dnsdumpster_repo()
+def safe_import_dnsdumpster():
+    # Temporarily remove the problematic geolocator from sys.modules
+    geolocator_module = sys.modules.pop('geolocator', None)
 
-from dnsdumpster.dnsdumpster import main as dnsdumpster_main
+    try:
+        # Add the repos directory to the Python path
+        repo_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'repos')
+        sys.path.insert(0, repo_path)
+
+        # Import dnsdumpster directly
+        from repos.dnsdumpster import dnsdumpster
+        return dnsdumpster.main
+    except ImportError as e:
+        logger.error(f"Failed to import dnsdumpster: {e}")
+        return None
+    finally:
+        # Restore the geolocator module and remove the added path
+        if geolocator_module:
+            sys.modules['geolocator'] = geolocator_module
+        if repo_path in sys.path:
+            sys.path.remove(repo_path)
+
+def get_dnsdumpster_main():
+    # try:
+    #     dnsdumpster_module = importlib.import_module('repos.dnsdumpster.dnsdumpster')
+    #     return dnsdumpster_module.main
+    # except ImportError as e:
+    #     logger.error(f"Failed to import dnsdumpster module: {e}")
+    #     return None
+    return safe_import_dnsdumpster()
 
 def get_ip_address(hostname: str) -> str:
     try:
@@ -90,25 +86,47 @@ def dig_mx_records(domain: str) -> List[Dict[str, Any]]:
         return []
 
 def dnsdumpster_enum(domain: str) -> Dict[str, Any]:
+    # if not domain:
+    #     logger.error("Invalid domain provided to DNSDumpster")
+    #     return {}
+
+    # logger.info(f"Starting DNSDumpster enumeration for {domain}")
+    # try:
+    #     dnsrecords = get_dnsdumpster_main()(domain)
+    #     results = parse_results(dnsrecords)
+        
+    #     # Add dig MX records
+    #     dig_mx = dig_mx_records(domain)
+    #     results['mx_records'].extend(dig_mx)
+        
+    #     logger.debug("DNSDumpster raw results: %s", dnsrecords)
+    #     logger.debug("DNSDumpster parsed results: %s", results)
+    #     return results
+    # except Exception as e:
+    #     logger.exception(f"Error in DNSDumpsterEnum: {str(e)}")
+    #     return {}
     if not domain:
         logger.error("Invalid domain provided to DNSDumpster")
-        return {}
+        return {"error": "Invalid domain provided"}
 
     logger.info(f"Starting DNSDumpster enumeration for {domain}")
     try:
-        dnsrecords = dnsdumpster_main(domain)
-        results = parse_results(dnsrecords)
+        dnsdumpster_main = safe_import_dnsdumpster()
+        if dnsdumpster_main is None:
+            return {"error": "Failed to import DNSDumpster module"}
         
-        # Add dig MX records
-        dig_mx = dig_mx_records(domain)
-        results['mx_records'].extend(dig_mx)
+        dnsrecords = dnsdumpster_main(domain)
+        if not dnsrecords:
+            return {"error": "DNSDumpster returned no data"}
+        
+        results = parse_results(dnsrecords)
         
         logger.debug("DNSDumpster raw results: %s", dnsrecords)
         logger.debug("DNSDumpster parsed results: %s", results)
         return results
     except Exception as e:
         logger.exception(f"Error in DNSDumpsterEnum: {str(e)}")
-        return {}
+        return {"error": str(e)}
 
 def parse_results(dnsrecords: Dict[str, Any]) -> Dict[str, Any]:
     results = {
@@ -133,6 +151,9 @@ def parse_results(dnsrecords: Dict[str, Any]) -> Dict[str, Any]:
                 'asn': subdomain.get('asn', {}),
                 'server': subdomain.get('server', 'N/A')
             })
+    else:
+        logger.warning("DNSDumpster returned unexpected data structure")
+        results['error'] = "Unexpected data structure from DNSDumpster"
     
     logger.debug(f"Parsed MX records: {results['mx_records']}")
     return results

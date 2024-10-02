@@ -9,16 +9,8 @@ from prettytable import PrettyTable
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def clone_dnsrecon():
-    if not os.path.exists("dnsrecon"):
-        logger.info("Cloning DNSRecon repository...")
-        subprocess.run(["git", "clone", "https://github.com/darkoperator/dnsrecon.git", "dnsrecon"], check=True)
-    else:
-        logger.info("DNSRecon repository already exists. Updating...")
-        subprocess.run(["git", "-C", "dnsrecon", "pull"], check=True)
-
 def run_dnsrecon(domain: str) -> List[Dict[str, Any]]:
-    dnsrecon_path = os.path.join("dnsrecon", "dnsrecon.py")
+    dnsrecon_path = os.path.join("repos", "dnsrecon", "dnsrecon.py")
     if not os.path.exists(dnsrecon_path):
         raise FileNotFoundError(f"DNSRecon script not found at {dnsrecon_path}")
 
@@ -33,7 +25,6 @@ def run_dnsrecon(domain: str) -> List[Dict[str, Any]]:
 
 def dnsrecon_enum(domain: str) -> Dict[str, Any]:
     try:
-        clone_dnsrecon()
         results = run_dnsrecon(domain)
         processed_results = process_dnsrecon_results(results)
         display_results(processed_results)

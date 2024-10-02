@@ -5,7 +5,7 @@ import sys
 import os
 
 def run_osint(company_url):
-    harvester_path = os.path.join("theHarvester", "theHarvester.py")
+    harvester_path = os.path.join("repos", "theHarvester", "theHarvester.py")
     output_file = "harvester_output.json"
     
     command = [
