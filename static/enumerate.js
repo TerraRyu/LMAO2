@@ -21,6 +21,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const scanTypesArray = scanTypes.split(',');
 
     function checkEnumerationStatus() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const domain = urlParams.get('domain');
+        const scanTypes = urlParams.getList('scan_types');
+
         fetch(`/enumeration_status/${encodeURIComponent(domain)}`)
             .then(response => response.json())
             .then(data => {
