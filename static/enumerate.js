@@ -25,9 +25,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const domain = urlParams.get('domain');
         const scanTypes = urlParams.getList('scan_types');
 
-        fetch(`/enumeration_status/${encodeURIComponent(domain)}`)
-            .then(response => response.json())
-            .then(data => {
+        fetch(`/enumeration_status/${encodeURIComponent(domain)}?${scanTypes.map(t => `scan_types=${encodeURIComponent(t)}`).join('&')}`)
+        .then(response => response.json())
+        .then(data => {
                 if (data.status === 'complete') {
                     document.getElementById('loading').style.display = 'none';
                     document.getElementById('results').style.display = 'block';

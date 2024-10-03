@@ -15,10 +15,24 @@ def run_command(command):
         print(f"stderr: {e.stderr}")
         raise
 
-def create_virtual_environment():
-    venv_dir = os.path.join(os.getcwd(), "venv")
-    print(f"Creating virtual environment in {venv_dir}")
-    venv.create(venv_dir, with_pip=True)
+def check_venv(venv_dir):
+    if os.path.exists(venv_dir):
+        if os.path.exists(os.path.join(venv_dir, "pyvenv.cfg")):
+            return True
+    return False
+
+def create_or_update_venv(venv_dir):
+    if check_venv(venv_dir):
+        print(f"Existing virtual environment found in {venv_dir}")
+        print("Updating virtual environment...")
+        if platform.system() == "Windows":
+            python = os.path.join(venv_dir, "Scripts", "python.exe")
+        else:
+            python = os.path.join(venv_dir, "bin", "python")
+        run_command(f'"{python}" -m pip install --upgrade pip')
+    else:
+        print(f"Creating new virtual environment in {venv_dir}")
+        venv.create(venv_dir, with_pip=True)
     return venv_dir
 
 def get_venv_python(venv_dir):
@@ -123,7 +137,8 @@ def install_requirements(requirements_file):
         print("Please try installing the requirements manually.")
 
 def main():
-    venv_dir = create_virtual_environment()
+    venv_dir = os.path.join(os.getcwd(), "venv")
+    venv_dir = create_or_update_venv(venv_dir)
     venv_python = get_venv_python(venv_dir)
 
     # Install requirements

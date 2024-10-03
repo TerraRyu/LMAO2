@@ -1,4 +1,7 @@
 # Nuclei binaries
 bin/nuclei_*
-dnsdumpster
-/theHarvester
+repos/
+cache/
+apikeys.py
+venv/
+ProjectFileStructure.txt
