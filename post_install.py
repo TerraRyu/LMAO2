@@ -140,6 +140,11 @@ def main():
                 print(f"Failed to install {requirement}")
                 continue
 
+    cache_dir = os.path.join(os.getcwd(), "cache")
+    if not os.path.exists(cache_dir):
+        os.makedirs(cache_dir)
+        print(f"Created cache directory: {cache_dir}")
+
     # Clone or update repositories
     repos = [
         "https://github.com/nmmapper/dnsdumpster.git",

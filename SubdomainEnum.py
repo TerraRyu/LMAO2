@@ -6,6 +6,7 @@ import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
 import json
+from cache_manager import save_to_cache, load_from_cache
 
 from functions.VTEnum import virustotal_enum
 from functions.DNSDumpEnum import dnsdumpster_enum
@@ -46,6 +47,12 @@ def enumerate_subdomains(domain: str, scan_types: List[str], progress_callback=N
         logger.error(f"Invalid domain: {clean_domain}")
         return set(), {"error": "Invalid domain"}
     
+    # Check cache first
+    cached_results = load_from_cache(clean_domain, scan_types)
+    if cached_results:
+        logger.info(f"Using cached results for {clean_domain}")
+        return set(cached_results['subdomains'].keys()), cached_results
+    
     all_subdomains: Set[str] = set()
     results = {
         'subdomains': {},
@@ -61,26 +68,17 @@ def enumerate_subdomains(domain: str, scan_types: List[str], progress_callback=N
         # Add other result categories as needed
     }
     
-    threads = []
     results_lock = threading.Lock()
     
-    for scan_type in scan_types:
-        if scan_type == 'passive':
-            thread = threading.Thread(target=process_passive_scan, args=(clean_domain, all_subdomains, results, results_lock, progress_callback))
-        elif scan_type == 'active':
-            thread = threading.Thread(target=process_active_scan, args=(clean_domain, all_subdomains, results, results_lock, progress_callback))
-        elif scan_type == 'osint':
-            thread = threading.Thread(target=process_osint_scan, args=(clean_domain, all_subdomains, results, results_lock, progress_callback))
-        # Add other scan types as needed
-        else:
-            continue
+    with ThreadPoolExecutor(max_workers=len(scan_types)) as executor:
+        future_to_scan = {executor.submit(run_scan, clean_domain, scan_type, all_subdomains, results, results_lock, progress_callback): scan_type for scan_type in scan_types}
         
-        threads.append(thread)
-        thread.start()
-    
-    # Wait for all threads to complete
-    for thread in threads:
-        thread.join()
+        for future in as_completed(future_to_scan):
+            scan_type = future_to_scan[future]
+            try:
+                future.result()
+            except Exception as exc:
+                logger.exception(f'{scan_type} scan generated an exception: {exc}')
 
     # Check status of all subdomains
     with ThreadPoolExecutor(max_workers=20) as executor:
@@ -95,7 +93,19 @@ def enumerate_subdomains(domain: str, scan_types: List[str], progress_callback=N
                 logger.exception(f'{subdomain} generated an exception: {exc}')
     
     logger.info(f"Total unique subdomains found across all methods: {len(all_subdomains)}")
+    
+    # Save results to cache
+    save_to_cache(clean_domain, scan_types, results)
+    
     return all_subdomains, results
+
+def run_scan(domain: str, scan_type: str, all_subdomains: Set[str], results: Dict[str, Any], lock: threading.Lock, progress_callback=None):
+    if scan_type == 'passive':
+        process_passive_scan(domain, all_subdomains, results, lock, progress_callback)
+    elif scan_type == 'active':
+        process_active_scan(domain, all_subdomains, results, lock, progress_callback)
+    elif scan_type == 'osint':
+        process_osint_scan(domain, all_subdomains, results, lock, progress_callback)
 
 def process_passive_scan(domain: str, all_subdomains: Set[str], results: Dict[str, Any], lock: threading.Lock, progress_callback=None):
     if progress_callback:

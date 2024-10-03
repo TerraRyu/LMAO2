@@ -14,6 +14,7 @@ import threading
 import time
 from functools import wraps
 import subprocess
+from cache_manager import load_from_cache, save_to_cache
 
 app = Flask(__name__, static_folder='static')
 
@@ -138,19 +139,41 @@ def enumerate():
 @app.route('/enumeration_status/<path:domain>')
 @limiter.limit("1000 per hour")  # Increased rate limit
 def enumeration_status(domain):
+    # try:
+    #     domain = unquote(domain)
+    #     if domain in enumeration_cache:
+    #         result = enumeration_cache[domain]
+    #         result['scan_types'] = result.get('scan_types', [])  # Ensure scan_types is included
+    #         # Include harvester results if available
+    #         if 'harvester' in result.get('results', {}):
+    #             result['harvester'] = result['results']['harvester']
+    #         if 'spiderfoot' in result.get('results', {}):
+    #             result['spiderfoot'] = result['results']['spiderfoot']
+    #         if 'trufflehog' in result.get('results', {}):
+    #             result['trufflehog'] = result['results']['trufflehog']
+                
+    #         return jsonify(result)
+    #     else:
+    #         return jsonify({"status": "processing", "progress": {}})
+    # except Exception as e:
+    #     app.logger.error(f"Error in enumeration_status: {str(e)}")
+    #     return jsonify({"status": "error", "message": str(e)}), 500
     try:
         domain = unquote(domain)
+        scan_types = request.args.getlist('scan_types')
+        
+        # Check cache first
+        cached_results = load_from_cache(domain, scan_types)
+        if cached_results:
+            return jsonify({"status": "complete", "results": cached_results})
+        
+        # If not in cache, check the enumeration_cache
         if domain in enumeration_cache:
             result = enumeration_cache[domain]
-            result['scan_types'] = result.get('scan_types', [])  # Ensure scan_types is included
-            # Include harvester results if available
-            if 'harvester' in result.get('results', {}):
-                result['harvester'] = result['results']['harvester']
-            if 'spiderfoot' in result.get('results', {}):
-                result['spiderfoot'] = result['results']['spiderfoot']
-            if 'trufflehog' in result.get('results', {}):
-                result['trufflehog'] = result['results']['trufflehog']
-                
+            result['scan_types'] = result.get('scan_types', [])
+            if result['status'] == 'complete':
+                # Save to cache for future use
+                save_to_cache(domain, scan_types, result['results'])
             return jsonify(result)
         else:
             return jsonify({"status": "processing", "progress": {}})
