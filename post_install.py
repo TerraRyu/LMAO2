@@ -215,72 +215,7 @@ def main():
         if not is_tool_installed("subzy"):
             print("Failed to install Subzy. Please install it manually.")
 
-
     print("Setup completed successfully.")
-    
-# try:
-#     # Install main project requirements
-#     print("Installing main project requirements...")
-#     stdout, stderr = run_command(f"{sys.executable} -m pip install -r requirements.txt")
-#     print(stdout)
-#     if stderr:
-#         print(stderr)
-
-#     # Clone or update repositories
-#     clone_or_update_repo("https://github.com/nmmapper/dnsdumpster.git", "dnsdumpster")
-#     clone_or_update_repo("https://github.com/darkoperator/dnsrecon.git", "dnsrecon")
-#     clone_or_update_repo("https://github.com/laramies/theHarvester.git", "theHarvester")
-#     clone_or_update_repo("https://github.com/smicallef/spiderfoot.git", "spiderfoot")
-#     clone_or_update_repo("https://github.com/trufflesecurity/trufflehog.git", "trufflehog")
-
-#     # Install requirements for cloned repositories
-#     install_requirements("repos/dnsdumpster/requirements.txt")
-#     install_requirements("repos/dnsrecon/requirements.txt")
-#     install_requirements("repos/theHarvester/requirements.txt")
-#     install_requirements("repos/spiderfoot/requirements.txt")
-
-#     # # Install SpiderFoot
-#     # print("Installing SpiderFoot...")
-#     # os.chdir("spiderfoot")
-#     # run_command(f"{sys.executable} setup.py install")
-#     # os.chdir("..")
-#     # print("SpiderFoot installed successfully.")
-
-#     # Install TruffleHog
-#     print("Installing TruffleHog...")
-#     os.chdir("repos/trufflehog")
-#     run_command("go build")
-#     os.chdir("..")
-#     print("TruffleHog installed successfully.")
-
-#     # Check if Go is installed
-#     if not is_go_installed():
-#         print("Go is not installed. Attempting to install Go...")
-#         install_go()
-#         if not is_go_installed():
-#             print("Failed to install Go. Please install it manually from https://golang.org/dl/ and ensure it's in your PATH.")
-#             sys.exit(1)
-
-#     # Check if Nuclei is installed
-#     if not is_tool_installed("nuclei"):
-#         print("Nuclei is not installed. Installing Nuclei...")
-#         install_nuclei()
-#         if not is_tool_installed("nuclei"):
-#             print("Failed to install Nuclei. Please install it manually.")
-
-#     # Check if Subzy is installed
-#     if not is_tool_installed("subzy"):
-#         print("Subzy is not installed. Installing Subzy...")
-#         install_subzy()
-#         if not is_tool_installed("subzy"):
-#             print("Failed to install Subzy. Please install it manually.")
-
-#     print("Setup completed successfully.")
-
-# except subprocess.CalledProcessError as e:
-#     print(f"An error occurred: {e}")
-#     print(f"Command output: {e.stdout.decode()}")
-#     print(f"Command error: {e.stderr.decode()}")
 
 if __name__ == "__main__":
     main()
