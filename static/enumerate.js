@@ -127,6 +127,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 html += `<button class="subtab-button" onclick="openSubTab(event, '${scanType}Harvester')">Harvester</button>`;
                 html += `<button class="subtab-button" onclick="openSubTab(event, '${scanType}SpiderFoot')">SpiderFoot</button>`;
                 html += `<button class="subtab-button" onclick="openSubTab(event, '${scanType}TruffleHog')">TruffleHog</button>`;
+            } else if (scanType === 'cloud_enum') {
+                html += `<button class="subtab-button" onclick="openSubTab(event, '${scanType}CloudFail')">CloudFail</button>`;
             }
             html += '</div>';
     
@@ -175,6 +177,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 html += `<div id="${scanType}TruffleHog" class="subtab-content" style="display: none">`;
                 html += createTruffleHogContent(results.trufflehog);
                 html += '</div>';
+            } else if (scanType === 'cloud_enum') {
+                html += `<div id="${scanType}CloudFail" class="subtab-content" style="display: none">`;
+                html += createCloudFailContent(results.cloudfail);
+                html += '</div>';
             }
     
             html += '</div>'; // Close tab-content div
@@ -210,25 +216,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function createDNSDumpsterContent(dnsdumpster) {
-        // let html = '<h4>Subdomains</h4><ul>';
-        // for (const subdomain of dnsdumpster.subdomains) {
-        //     html += `<li>${subdomain.domain} (IP: ${subdomain.ip}, ASN: ${subdomain.asn}, Server: ${subdomain.server})</li>`;
-        // }
-        // html += '</ul>';
-
-        // html += '<h4>MX Records</h4><ul>';
-        // for (const mx of dnsdumpster.mx_records) {
-        //     html += `<li>${mx.exchange} (Preference: ${mx.preference}, IP: ${mx.ip})</li>`;
-        // }
-        // html += '</ul>';
-
-        // html += '<h4>TXT Records</h4><ul>';
-        // for (const txt of dnsdumpster.txt_records) {
-        //     html += `<li>${txt}</li>`;
-        // }
-        // html += '</ul>';
-
-        // return html;
         if (dnsdumpster && dnsdumpster.error) {
             return `<h3>DNSDumpster Error</h3><p>${dnsdumpster.error}</p>`;
         }
@@ -304,25 +291,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!Array.isArray(items) || items.length === 0) {
             return '<table class="display"><thead><tr><th>No Data</th></tr></thead><tbody><tr><td>No results found.</td></tr></tbody></table>';
         }
-    
-        // let html = '<table class="display"><thead><tr>';
-        // headers.forEach(header => {
-        //     html += `<th>${header}</th>`;
-        // });
-        // html += '</tr></thead><tbody>';
-        // items.forEach(item => {
-        //     html += '<tr>';
-        //     if (typeof item === 'object' && item !== null) {
-        //         Object.values(item).forEach(value => {
-        //             html += `<td>${value}</td>`;
-        //         });
-        //     } else {
-        //         html += `<td>${item}</td>`;
-        //     }
-        //     html += '</tr>';
-        // });
-        // html += '</tbody></table>';
-        // return html;
+
         let html = '<table class="display"><thead><tr>';
         headers.forEach(header => {
             html += `<th>${header}</th>`;
@@ -600,27 +569,48 @@ document.addEventListener('DOMContentLoaded', function() {
         return html;
     }
 
+    function createCloudEnumContent(cloudEnumResults) {
+        let html = '<h3>Cloud Enumeration Results</h3>';
+
+        if (cloudEnumResults.error) {
+            return html + `<p>Error: ${cloudEnumResults.error}</p>`;
+        }
+
+        if (cloudEnumResults.cloud_provider) {
+            html += `<p><strong>Cloud Provider:</strong> ${cloudEnumResults.cloud_provider}</p>`;
+        }
+
+        if (cloudEnumResults.dns_records && cloudEnumResults.dns_records.length > 0) {
+            html += '<h4>DNS Records</h4>';
+            html += '<ul>';
+            cloudEnumResults.dns_records.forEach(record => {
+                html += `<li>${record}</li>`;
+            });
+            html += '</ul>';
+        }
+
+        if (cloudEnumResults.subdomains && cloudEnumResults.subdomains.length > 0) {
+            html += '<h4>Subdomains</h4>';
+            html += '<ul>';
+            cloudEnumResults.subdomains.forEach(subdomain => {
+                html += `<li>${subdomain}</li>`;
+            });
+            html += '</ul>';
+        }
+
+        if (cloudEnumResults.crimeflare_results && cloudEnumResults.crimeflare_results.length > 0) {
+            html += '<h4>Crimeflare Results</h4>';
+            html += '<ul>';
+            cloudEnumResults.crimeflare_results.forEach(result => {
+                html += `<li>${result}</li>`;
+            });
+            html += '</ul>';
+        }
+
+        return html;
+    }
+
     function initializeTables() {
-        // $('#compiledResultsTable').DataTable({
-        //     "pageLength": 25,
-        //     "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
-        //     "order": []
-        // });
-        // $('#virusTotalTable').DataTable({ 
-        //     "pageLength": 25,
-        //     "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
-        //     "order": []
-        // });
-        // $('.display').each(function() {
-        //     if ($.fn.DataTable.isDataTable(this)) {
-        //         $(this).DataTable().destroy();
-        //     }
-        //     $(this).DataTable({
-        //         "pageLength": 25,
-        //         "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
-        //         "order": []
-        //     });
-        // });
         $('.display').each(function() {
             try {
                 if ($.fn.DataTable.isDataTable(this)) {

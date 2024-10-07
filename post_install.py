@@ -166,7 +166,8 @@ def main():
         "https://github.com/darkoperator/dnsrecon.git",
         "https://github.com/laramies/theHarvester.git",
         "https://github.com/smicallef/spiderfoot.git",
-        "https://github.com/trufflesecurity/trufflehog.git"
+        "https://github.com/trufflesecurity/trufflehog.git",
+        "https://github.com/m0rtem/CloudFail.git"
     ]
 
     for repo_url in repos:
@@ -179,6 +180,7 @@ def main():
         "repos/dnsrecon/requirements.txt",
         "repos/theHarvester/requirements.txt",
         "repos/spiderfoot/requirements.txt",
+        "repos/CloudFail/requirements.txt"
     ]
 
     for req_file in additional_requirements:

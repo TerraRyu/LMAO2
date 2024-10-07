@@ -8,17 +8,18 @@ import threading
 import json
 from cache_manager import save_to_cache, load_from_cache
 
+from SearchFunctionality import is_valid_domain, extract_domain
 from functions.VTEnum import virustotal_enum
 from functions.DNSDumpEnum import dnsdumpster_enum
 from activescans.dnsrecon import dnsrecon_enum
-from activescans.dig_enum import dig_enum 
 from functions.nucleirecon import nuclei_enum
+from activescans.dig_enum import dig_enum 
 from activescans.subzy_enum import subzy_enum
-from SearchFunctionality import is_valid_domain, extract_domain
 from OSINT.harvester import run_osint
 from OSINT.spiderfoot_enum import run_spiderfoot
 from OSINT.trufflehog_enum import run_trufflehog
 from functions.shodan_enum import shodan_enum 
+from Cloud.cloudfail_enum import cloud_enum
 # Import other enumeration functions as needed
 
 logging.basicConfig(level=logging.INFO)
@@ -64,7 +65,8 @@ def enumerate_subdomains(domain: str, scan_types: List[str], progress_callback=N
         'harvester': {},
         'spiderfoot': {},
         'trufflehog': {},
-        'shodan': {}
+        'shodan': {},
+        'cloudfail': {}
         # Add other result categories as needed
     }
     
@@ -106,6 +108,8 @@ def run_scan(domain: str, scan_type: str, all_subdomains: Set[str], results: Dic
         process_active_scan(domain, all_subdomains, results, lock, progress_callback)
     elif scan_type == 'osint':
         process_osint_scan(domain, all_subdomains, results, lock, progress_callback)
+    elif scan_type == 'cloud':
+        process_cloud_enum_scan(domain, all_subdomains, results, lock, progress_callback)
 
 def process_passive_scan(domain: str, all_subdomains: Set[str], results: Dict[str, Any], lock: threading.Lock, progress_callback=None):
     if progress_callback:
@@ -190,6 +194,19 @@ def process_osint_scan(domain: str, all_subdomains: Set[str], results: Dict[str,
     if progress_callback:
         progress_callback('osint', 100)
         
+def process_cloud_enum_scan(domain: str, all_subdomains: Set[str], results: Dict[str, Any], lock: threading.Lock, progress_callback=None):
+    if progress_callback:
+        progress_callback('cloud_enum', 0)
+    
+    cloud_results = cloud_enum(domain)
+    
+    with lock:
+        results['cloud_enum'] = cloud_results
+        if 'subdomains' in cloud_results and isinstance(cloud_results['subdomains'], list):
+            all_subdomains.update(cloud_results['subdomains'])
+    
+    if progress_callback:
+        progress_callback('cloud_enum', 100)
         
 def process_virustotal_results(result: Dict[str, Any], all_subdomains: Set[str], results: Dict[str, Any]) -> None:
     results['virustotal'] = result
