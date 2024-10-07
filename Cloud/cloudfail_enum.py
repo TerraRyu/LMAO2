@@ -1,50 +1,55 @@
-# functions/cloud_enum.py
-
-import sys
-import os
+import dns.resolver
+import requests
 from typing import Dict, Any
+import logging
 
-# Add CloudFail to Python path
-current_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.dirname(current_dir)
-cloudfail_path = os.path.join(project_root, 'repos', 'CloudFail')
-sys.path.append(cloudfail_path)
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# Import CloudFail components
-try:
-    from DNSDumpsterAPI import DNSDumpsterAPI
-    from Host import Host
-    from Breaker import CloudBreaker
-except ImportError as e:
-    print(f"Error importing CloudFail components: {e}")
-    print(f"CloudFail path: {cloudfail_path}")
-    print(f"Python path: {sys.path}")
-    DNSDumpsterAPI = None
-    Host = None
-    CloudBreaker = None
+def cloudfail_enum(domain: str) -> Dict[str, Any]:
+    results = {
+        "cloud_provider": identify_cloud_provider(domain),
+        "dns_records": get_dns_records(domain),
+    }
+    return results
 
-def cloud_enum(domain: str) -> Dict[str, Any]:
-    if DNSDumpsterAPI is None or Host is None or CloudBreaker is None:
-        return {"error": "CloudFail components not found"}
+def identify_cloud_provider(domain: str) -> str:
+    # Check for common cloud providers
+    providers = {
+        "cloudflare": ["cloudflare.com", "cloudflare.net"],
+        "aws": ["amazonaws.com", "cloudfront.net"],
+        "google": ["googleusercontent.com", "googleapis.com"],
+        "azure": ["azurewebsites.net", "cloudapp.azure.com"],
+    }
 
     try:
-        host = Host(domain)
-        
-        # Perform DNS enumeration
-        dumper = DNSDumpsterAPI(host.name)
-        host.dns_records = dumper.DNSdumpster()
-        
-        # Perform Crimeflare search
-        breaker = CloudBreaker(host)
-        breaker.run()
-        
-        results = {
-            "cloud_provider": host.cloudflare_ip or "Unknown",
-            "dns_records": host.dns_records,
-            "subdomains": host.domains,
-            "crimeflare_results": breaker.ipv4_results if hasattr(breaker, 'ipv4_results') else []
-        }
-        
-        return results
-    except Exception as e:
-        return {"error": f"Error running CloudFail components: {str(e)}"}
+        ip = dns.resolver.resolve(domain, 'A')[0].to_text()
+        for provider, domains in providers.items():
+            for domain in domains:
+                try:
+                    if dns.resolver.resolve(domain, 'A')[0].to_text() == ip:
+                        return provider
+                except:
+                    continue
+    except:
+        pass
+
+    return "Unknown"
+
+def get_dns_records(domain: str) -> Dict[str, list]:
+    record_types = ['A', 'AAAA', 'CNAME', 'MX', 'NS', 'TXT']
+    dns_records = {}
+
+    for record_type in record_types:
+        try:
+            answers = dns.resolver.resolve(domain, record_type)
+            dns_records[record_type] = [str(rdata) for rdata in answers]
+        except:
+            dns_records[record_type] = []
+
+    return dns_records
+
+if __name__ == "__main__":
+    domain = input("Enter a domain to enumerate: ")
+    results = cloudfail_enum(domain)
+    print(results)

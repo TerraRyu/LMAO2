@@ -5,4 +5,4 @@ cache/
 venv/
 ProjectFileStructure.txt
 apikeys.py
-__pycache__/
+__pycache__

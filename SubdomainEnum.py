@@ -19,7 +19,10 @@ from OSINT.harvester import run_osint
 from OSINT.spiderfoot_enum import run_spiderfoot
 from OSINT.trufflehog_enum import run_trufflehog
 from functions.shodan_enum import shodan_enum 
-from Cloud.cloudfail_enum import cloud_enum
+from Cloud.cloudfail_enum import cloudfail_enum
+from Cloud.aws_bucket_dump import run_aws_bucket_dump
+from Cloud.gcp_bucket_brute import run_gcp_bucket_brute
+from Cloud.microburst import run_microburst
 # Import other enumeration functions as needed
 
 logging.basicConfig(level=logging.INFO)
@@ -66,7 +69,10 @@ def enumerate_subdomains(domain: str, scan_types: List[str], progress_callback=N
         'spiderfoot': {},
         'trufflehog': {},
         'shodan': {},
-        'cloudfail': {}
+        'cloudfail': {},
+        'aws_bucket_dump': {},
+        'gcp_bucket_brute': {},
+        'microburst': {}
         # Add other result categories as needed
     }
     
@@ -83,6 +89,16 @@ def enumerate_subdomains(domain: str, scan_types: List[str], progress_callback=N
                 logger.exception(f'{scan_type} scan generated an exception: {exc}')
 
     # Check status of all subdomains
+    # with ThreadPoolExecutor(max_workers=20) as executor:
+    #     future_to_subdomain = {executor.submit(check_subdomain_status, subdomain): subdomain for subdomain in all_subdomains}
+    #     for future in as_completed(future_to_subdomain):
+    #         subdomain = future_to_subdomain[future]
+    #         try:
+    #             subdomain, status = future.result()
+    #             with results_lock:
+    #                 results['subdomains'][subdomain]['status'] = status
+    #         except Exception as exc:
+    #             logger.exception(f'{subdomain} generated an exception: {exc}')
     with ThreadPoolExecutor(max_workers=20) as executor:
         future_to_subdomain = {executor.submit(check_subdomain_status, subdomain): subdomain for subdomain in all_subdomains}
         for future in as_completed(future_to_subdomain):
@@ -90,6 +106,8 @@ def enumerate_subdomains(domain: str, scan_types: List[str], progress_callback=N
             try:
                 subdomain, status = future.result()
                 with results_lock:
+                    if subdomain not in results['subdomains']:
+                        results['subdomains'][subdomain] = {'ip': subdomain, 'sources': ['IP Address']}
                     results['subdomains'][subdomain]['status'] = status
             except Exception as exc:
                 logger.exception(f'{subdomain} generated an exception: {exc}')
@@ -198,12 +216,28 @@ def process_cloud_enum_scan(domain: str, all_subdomains: Set[str], results: Dict
     if progress_callback:
         progress_callback('cloud_enum', 0)
     
-    cloud_results = cloud_enum(domain)
+    cloud_results = cloudfail_enum(domain)
+    aws_results = run_aws_bucket_dump(domain)
+    gcp_results = run_gcp_bucket_brute(domain)
+    azure_results = run_microburst(domain)
     
     with lock:
-        results['cloud_enum'] = cloud_results
-        if 'subdomains' in cloud_results and isinstance(cloud_results['subdomains'], list):
-            all_subdomains.update(cloud_results['subdomains'])
+        results['cloudfail'] = cloud_results
+        results['aws_bucket_dump'] = aws_results
+        results['gcp_bucket_brute'] = gcp_results
+        results['microburst'] = azure_results
+
+        # Add discovered subdomains to all_subdomains set
+        if 'dns_records' in cloud_results:
+            for record_type, records in cloud_results['dns_records'].items():
+                for record in records:
+                    if record_type in ['A', 'AAAA', 'CNAME']:
+                        all_subdomains.add(record)
+        
+        # Add discovered buckets and blobs to all_subdomains set
+        all_subdomains.update(aws_results.get('open_buckets', []))
+        all_subdomains.update(gcp_results.get('public_buckets', []))
+        all_subdomains.update(azure_results.get('open_blobs', []))
     
     if progress_callback:
         progress_callback('cloud_enum', 100)

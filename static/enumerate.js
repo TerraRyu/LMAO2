@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', function() {
         domainNameElement.textContent = domain;
     }
 
-    if (!scanTypes) {
+    if (!scanTypes || scanTypes.length === 0) {
         showError('No scan types specified');
         return;
     }
@@ -129,6 +129,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 html += `<button class="subtab-button" onclick="openSubTab(event, '${scanType}TruffleHog')">TruffleHog</button>`;
             } else if (scanType === 'cloud_enum') {
                 html += `<button class="subtab-button" onclick="openSubTab(event, '${scanType}CloudFail')">CloudFail</button>`;
+                html += `<button class="subtab-button" onclick="openSubTab(event, '${scanType}AWSBucketDump')">AWSBucketDump</button>`;
+                html += `<button class="subtab-button" onclick="openSubTab(event, '${scanType}GCPBucketBrute')">GCPBucketBrute</button>`;
+                html += `<button class="subtab-button" onclick="openSubTab(event, '${scanType}MicroBurst')">MicroBurst</button>`;
             }
             html += '</div>';
     
@@ -180,6 +183,18 @@ document.addEventListener('DOMContentLoaded', function() {
             } else if (scanType === 'cloud_enum') {
                 html += `<div id="${scanType}CloudFail" class="subtab-content" style="display: none">`;
                 html += createCloudFailContent(results.cloudfail);
+                html += '</div>';
+
+                html += `<div id="${scanType}AWSBucketDump" class="subtab-content" style="display: none">`;
+                html += createAWSBucketDumpContent(results.aws_bucket_dump);
+                html += '</div>';
+
+                html += `<div id="${scanType}GCPBucketBrute" class="subtab-content" style="display: none">`;
+                html += createGCPBucketBruteContent(results.gcp_bucket_brute);
+                html += '</div>';
+
+                html += `<div id="${scanType}MicroBurst" class="subtab-content" style="display: none">`;
+                html += createMicroBurstContent(results.microburst);
                 html += '</div>';
             }
     
@@ -569,43 +584,98 @@ document.addEventListener('DOMContentLoaded', function() {
         return html;
     }
 
-    function createCloudEnumContent(cloudEnumResults) {
-        let html = '<h3>Cloud Enumeration Results</h3>';
+    function createCloudFailContent(cloudFailResults) {
+        let html = '<h3>CloudFail Results</h3>';
 
-        if (cloudEnumResults.error) {
-            return html + `<p>Error: ${cloudEnumResults.error}</p>`;
+        if (!cloudFailResults) {
+            return html + '<p>No CloudFail results available.</p>';
         }
 
-        if (cloudEnumResults.cloud_provider) {
-            html += `<p><strong>Cloud Provider:</strong> ${cloudEnumResults.cloud_provider}</p>`;
+        html += `<p><strong>Cloud Provider:</strong> ${cloudFailResults.cloud_provider}</p>`;
+
+        html += '<h4>DNS Records</h4>';
+        html += '<table class="display"><thead><tr><th>Type</th><th>Records</th></tr></thead><tbody>';
+        for (const [recordType, records] of Object.entries(cloudFailResults.dns_records)) {
+            html += `<tr><td>${recordType}</td><td>${records.join(', ')}</td></tr>`;
+        }
+        html += '</tbody></table>';
+
+        return html;
+    }
+
+    function createAWSBucketDumpContent(awsResults) {
+        let html = '<h3>AWS S3 Bucket Results</h3>';
+
+        if (!awsResults || awsResults.error) {
+            return html + `<p>Error: ${awsResults.error || 'No results available.'}</p>`;
         }
 
-        if (cloudEnumResults.dns_records && cloudEnumResults.dns_records.length > 0) {
-            html += '<h4>DNS Records</h4>';
-            html += '<ul>';
-            cloudEnumResults.dns_records.forEach(record => {
-                html += `<li>${record}</li>`;
-            });
-            html += '</ul>';
+        html += '<h4>Open Buckets</h4>';
+        html += createTable(awsResults.open_buckets, ['Bucket Name']);
+
+        html += '<h4>Accessible Files</h4>';
+        html += createTable(awsResults.accessible_files, ['File Path']);
+
+        return html;
+    }
+
+    function createGCPBucketBruteContent(gcpResults) {
+        let html = '<h3>GCP Bucket Results</h3>';
+
+        if (!gcpResults || gcpResults.error) {
+            return html + `<p>Error: ${gcpResults.error || 'No results available.'}</p>`;
         }
 
-        if (cloudEnumResults.subdomains && cloudEnumResults.subdomains.length > 0) {
-            html += '<h4>Subdomains</h4>';
-            html += '<ul>';
-            cloudEnumResults.subdomains.forEach(subdomain => {
-                html += `<li>${subdomain}</li>`;
-            });
-            html += '</ul>';
+        html += '<h4>Public Buckets</h4>';
+        html += createTable(gcpResults.public_buckets, ['Bucket Name']);
+
+        html += '<h4>Accessible Files</h4>';
+        html += createTable(gcpResults.accessible_files, ['File Path']);
+
+        return html;
+    }
+
+    function createMicroBurstContent(azureResults) {
+        let html = '<h3>Azure Blob Storage Results</h3>';
+
+        if (!azureResults || azureResults.error) {
+            return html + `<p>Error: ${azureResults.error || 'No results available.'}</p>`;
         }
 
-        if (cloudEnumResults.crimeflare_results && cloudEnumResults.crimeflare_results.length > 0) {
-            html += '<h4>Crimeflare Results</h4>';
-            html += '<ul>';
-            cloudEnumResults.crimeflare_results.forEach(result => {
-                html += `<li>${result}</li>`;
-            });
-            html += '</ul>';
+        html += '<h4>Open Blobs</h4>';
+        html += createTable(azureResults.open_blobs, ['Blob URL']);
+
+        html += '<h4>Containers</h4>';
+        html += createTable(azureResults.containers, ['Container Name']);
+
+        html += '<h4>Files</h4>';
+        html += createTable(azureResults.files, ['File URL']);
+
+        return html;
+    }
+
+    function createTable(items, headers) {
+        if (!items || items.length === 0) {
+            return '<p>No items found.</p>';
         }
+
+        let html = '<table class="display"><thead><tr>';
+        headers.forEach(header => {
+            html += `<th>${header}</th>`;
+        });
+        html += '</tr></thead><tbody>';
+        items.forEach(item => {
+            html += '<tr>';
+            if (typeof item === 'object' && item !== null) {
+                headers.forEach(header => {
+                    html += `<td>${item[header] || 'N/A'}</td>`;
+                });
+            } else {
+                html += `<td>${item || 'N/A'}</td>`;
+            }
+            html += '</tr>';
+        });
+        html += '</tbody></table>';
 
         return html;
     }
