@@ -2,6 +2,6 @@
 bin/nuclei_*
 repos/
 cache/
-apikeys
+apikeys.py
 venv/
 ProjectFileStructure.txt
