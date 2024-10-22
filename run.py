@@ -18,8 +18,17 @@ def main():
     
     print("Starting the application...")
     try:
+        print(sys.platform)
+        if sys.platform == "win32":
+            activate_script = os.path.join("venv", "Scripts", "activate.bat")
+        else:
+            activate_script = os.path.join("venv", "bin", "activate")
+
+        # Run the activate script
+        subprocess.call(activate_script, shell=True)
         process = subprocess.Popen([venv_python, "app.py"])
         process.wait()
+        
     except KeyboardInterrupt:
         print("\nStopping the application...")
         process.terminate()

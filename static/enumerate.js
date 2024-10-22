@@ -23,10 +23,23 @@ document.addEventListener('DOMContentLoaded', function() {
     function checkEnumerationStatus() {
         const urlParams = new URLSearchParams(window.location.search);
         const domain = urlParams.get('domain');
-        const scanTypes = urlParams.getList('scan_types');
+        const scanTypes = urlParams.getAll('scan_types');
 
-        fetch(`/enumeration_status/${encodeURIComponent(domain)}?${scanTypes.map(t => `scan_types=${encodeURIComponent(t)}`).join('&')}`)
-        .then(response => response.json())
+        //fetch(`/enumeration_status/${encodeURIComponent(domain)}?${scanTypes.map(t => `scan_types=${encodeURIComponent(t)}`).join('&')}`)
+        //.then(response => response.json())
+        const encodedDomain = encodeURIComponent(domain);
+        const scanTypesParam = scanTypes.map(t => `scan_types=${encodeURIComponent(t)}`).join('&');
+        const url = `/enumeration_status/${encodedDomain}?${scanTypesParam}`;
+
+        console.log('Requesting enumeration status:', url);  // Add this line for debugging
+
+        fetch(url)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
         .then(data => {
                 if (data.status === 'complete') {
                     document.getElementById('loading').style.display = 'none';
